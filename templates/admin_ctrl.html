@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container-fluid">
+        <h1 class="mb-4">管理员控制中心</h1>
+        
+        <!-- 系统状态卡片 -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-white bg-primary">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-user-shield me-2"></i>管理员状态</h5>
+                        <p class="card-text">在线</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-info">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-users me-2"></i>操作员数量</h5>
+                        <p class="card-text">{{ operator_count }}人</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-success">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-cogs me-2"></i>系统配置</h5>
+                        <p class="card-text">已完成</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-warning">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-exclamation-triangle me-2"></i>待处理事项</h5>
+                        <p class="card-text">7个</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 管理员操作区域 -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-user-plus me-2"></i>用户管理
+                    </div>
+                    <div class="card-body">
+                        <table id="userTable" class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>用户名</th>
+                                    <th>角色</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                    <tr id="user_{{ user.id }}">
+                                        <td>
+                                            <input type="text"
+                                                   class="form-control username"
+                                                   value="{{ user.username }}">
+                                        </td>
+                                        <td>
+                                            <select class="form-select role">
+                                                <option value="operator"
+                                                    {% if user.role == 'operator' %}selected{% endif %}>operator</option>
+                                                <option value="admin"
+                                                    {% if user.role == 'admin' %}selected{% endif %}>admin</option>
+                                            </select>
+                                        </td>
+                                        <td>{{ '在线' if current_user.id == user.id else '离线' }}</td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-primary edit-btn"
+                                                data-user-id="{{ user.id }}">修改</button>
+                                            <button type="button" class="btn btn-sm btn-danger  delete-btn"
+                                                data-user-id="{{ user.id }}">删除</button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <button class="btn btn-success"
+                                data-bs-toggle="modal"
+                                data-bs-target="#addUserModal">添加用户</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-cog me-2"></i>系统设置
+                    </div>
+                    <div class="card-body">
+                        <form>
+                            <div class="mb-3">
+                                <label for="systemName" class="form-label">系统名称</label>
+                                <input type="text" class="form-control" id="systemName" value="智慧海洋牧场可视化系统">
+                            </div>
+                            <div class="mb-3">
+                                <label for="refreshInterval" class="form-label">数据刷新间隔（秒）</label>
+                                <input type="number" class="form-control" id="refreshInterval" value="30">
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="enableAlerts" checked>
+                                <label class="form-check-label" for="enableAlerts">启用告警通知</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary">保存设置</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 添加用户模态框 -->
+        <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addUserModalLabel">添加用户</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addUserForm">
+                            <div class="mb-3">
+                                <label for="newUsername" class="form-label">用户名</label>
+                                <input type="text" class="form-control" id="newUsername" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="newPassword" class="form-label">密码</label>
+                                <input type="password" class="form-control" id="newPassword" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="newRole" class="form-label">角色</label>
+                                <select class="form-select" id="newRole" required>
+                                    <option value="admin">管理员</option>
+                                    <option value="operator">操作员</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary">添加用户</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- ★ 删除用户模态框 -->
+        <div class="modal fade" id="delUserModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form id="delUserForm" class="modal-body">
+                        <h5 class="modal-title mb-3">删除用户</h5>
+
+                        <div class="mb-3">
+                            <label class="form-label">用户名</label>
+                            <input type="text" id="delUsername" class="form-control" required>
+                        </div>
+
+                        <div class="text-end">
+                            <button type="button" class="btn btn-secondary me-2"
+                                    data-bs-dismiss="modal">取消</button>
+                            <button type="submit" class="btn btn-danger">确认删除</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- 系统日志 -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-history me-2"></i>系统日志
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive log-scroll">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>时间</th>
+                                        <th>用户</th>
+                                        <th>操作</th>
+                                        <th>详情</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for log in logs %}
+                                    <tr>
+                                        <td>{{ log['time'] }}</td>
+                                        <td>{{ log['user'] }}</td>
+                                        <td>{{ log['action'] }}</td>
+                                        <td>{{ log['detail'] }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const UPDATE_URL = '/update_user/';    // 修改时：/update_user/<id>
+  const ADD_URL    = '/add_user';        // 添加时：/add_user
+  const DEL_URL    = '/delete_user/';    // 删除时：/delete_user/<id>
+
+  const ok  = msg => alert(msg);
+  const err = msg => alert('错误：' + msg);
+
+  async function handle(resp) {
+    if (resp.ok) return resp.json();
+    let m = `HTTP ${resp.status}`;
+    try { m = (await resp.json()).msg || m; } catch(_) {}
+    throw m;
+  }
+
+  const table = document.getElementById('userTable');
+
+  // 代理处理“编辑”和“删除”按钮
+  table.addEventListener('click', async e => {
+    // —— 编辑 —— 
+    const editBtn = e.target.closest('.edit-btn');
+    if (editBtn) {
+      const id   = editBtn.dataset.userId;
+      const row  = document.getElementById('user_' + id);
+      const name = row.querySelector('.username').value.trim();
+      const role = row.querySelector('.role').value.trim();
+      try {
+        await fetch(UPDATE_URL + id, {
+          method: 'POST',
+          headers: {'Content-Type':'application/x-www-form-urlencoded'},
+          body: new URLSearchParams({username: name, role})
+        }).then(handle);
+        ok('修改成功');
+      } catch (msg) {
+        err(msg);
+      }
+      return;
+    }
+
+    // —— 删除 —— 
+    const delBtn = e.target.closest('.delete-btn');
+    if (delBtn) {
+      const id   = delBtn.dataset.userId;
+      const row  = document.getElementById('user_' + id);
+      const name = row.querySelector('.username').value.trim();
+      if (!confirm(`确定要删除用户「${name}」？`)) return;
+      try {
+        await fetch(DEL_URL + id, {
+          method: 'POST'
+        }).then(handle);
+        row.remove();
+        ok('删除成功');
+      } catch (msg) {
+        err(msg);
+      }
+      return;
+    }
+  });
+
+  // 添加用户
+  document.getElementById('addUserForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const params = new URLSearchParams({
+      username: document.getElementById('newUsername').value.trim(),
+      password: document.getElementById('newPassword').value.trim(),
+      role:     document.getElementById('newRole').value
+    });
+    try {
+      const d = await fetch(ADD_URL, {
+        method: 'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body: params
+      }).then(handle);
+
+      // 动态插入新行（含编辑+删除按钮）
+      const tr = document.createElement('tr');
+      tr.id = 'user_' + d.id;
+      tr.innerHTML = `
+        <td><input class="form-control username" value="${d.username}"></td>
+        <td><input class="form-control role"     value="${d.role}"></td>
+        <td>${d.role==='admin'?'在线':'离线'}</td>
+        <td>
+          <button type="button" class="btn btn-sm btn-primary edit-btn"
+                  data-user-id="${d.id}">修改</button>
+          <button type="button" class="btn btn-sm btn-danger delete-btn"
+                  data-user-id="${d.id}">删除</button>
+        </td>`;
+      table.querySelector('tbody').appendChild(tr);
+
+      bootstrap.Modal.getOrCreateInstance('#addUserModal').hide();
+      e.target.reset();
+      ok('添加成功');
+    } catch (msg) {
+      err(msg);
+    }
+  });
+});
+</script>
+{% endblock %}

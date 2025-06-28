@@ -1,0 +1,1948 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mb-4">智慧海洋牧场可视化系统 - <span id="ranchNameTitle">请选择海洋牧场</span></h1>
+
+    <!-- 系统概览卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-globe me-2"></i>海域面积</h5>
+                    <p class="card-text" id="seaArea">-</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-fish me-2"></i>养殖种类</h5>
+                    <p class="card-text" id="speciesCount">-</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-water me-2"></i>水质天气</h5>
+                    <p class="card-text" id="waterQuality">-</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-exclamation-triangle me-2"></i>告警数量</h5>
+                    <p class="card-text" id="alertCount">-</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 水域详细介绍 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-map-marked-alt me-2"></i>水域介绍
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>基本信息</h5>
+                            <ul class="list-unstyled">
+                                <li><strong>位置：</strong><span id="location">-</span></li>
+                                <li><strong>水深：</strong><span id="waterDepth">-</span></li>
+                                <li><strong>海流情况：</strong><span id="currentStatus">-</span></li>
+                                <li><strong>建设时间：</strong><span id="establishTime">-</span></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>特色介绍</h5>
+                            <p id="introduction">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 养殖种类详情 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-fish me-2"></i>养殖种类详情
+                </div>
+                <div class="card-body">
+                    <div id="speciesList" class="row">
+                        <!-- 动态生成的养殖种类卡片 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <!-- 系统告警信息 -->
+        <div class="col-md-6">
+            <div class="card">
+                <!-- <div class="card-header">
+                    <i class="fas fa-bell me-2"></i>系统告警信息
+                </div>
+                    <button class="btn btn-outline-danger btn-sm clear-btn" onclick="clearAllAlerts()" id="clearBtn">
+                        <i class="fas fa-trash me-1"></i>清除所有
+                    </button> -->
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-bell me-2"></i>系统告警信息
+                    </div>
+                    <button class="btn btn-outline-danger btn-sm clear-btn" onclick="deleteAllAlertsHandler(getCurrentRanchName())" id="clearBtn">
+                        <i class="fas fa-trash me-1"></i>清除所有
+                    </button>
+                </div>
+                <div class="card-body" id="alertsContainer" style="max-height: 300px; overflow-y: auto;">
+                    <!-- 动态生成的告警信息 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 实时视频监控 -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-video me-2"></i>实时视频监控
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-dark text-white">
+                                    摄像头 1
+                                </div>
+                                <div class="card-body p-0">
+                                    <video width="100%" height="auto" controls autoplay muted loop>
+                                        <source src="{{ url_for('static', filename='videos/珊瑚鱼群.mp4') }}" type="video/mp4">
+                                        您的浏览器不支持视频标签。
+                                    </video>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-dark text-white">
+                                    摄像头 2
+                                </div>
+                                <div class="card-body p-0">
+                                    <video width="100%" height="auto" controls autoplay muted loop>
+                                        <source src="{{ url_for('static', filename='videos/海底风光.mp4') }}" type="video/mp4">
+                                        您的浏览器不支持视频标签。
+                                    </video>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+/*
+    * 海洋牧场数据
+*/
+
+    // 各海洋牧场的详细数据
+    const marineRanchData = {
+        0: { // 山东青岛
+            name: '青岛国家级海洋牧场示范区',
+            seaArea: '850平方公里',
+            speciesCount: '12种',
+            waterQuality: '优秀',
+            alertCount: '2个',
+            location: '青岛市黄岛区东海岸',
+            waterDepth: '15-45米',
+            currentStatus: '海流稳定，适宜养殖',
+            establishTime: '2018年6月',
+            introduction: '青岛海洋牧场是国家首批认定的海洋牧场示范区，拥有先进的智能化管理系统和完善的生态养殖体系。该区域海水清澈，生态环境优良，是多种海洋生物的理想栖息地。',
+            species: [
+                { name: '海参', quantity: '200万头', status: '生长良好' },
+                { name: '鲍鱼', quantity: '150万只', status: '正常' },
+                { name: '扇贝', quantity: '500万只', status: '丰收期' },
+                { name: '海胆', quantity: '80万只', status: '生长中' }
+            ],
+            alerts: [
+                { level: 'warning', type: '设备异常', message: '3号浮标信号弱，请检查电池。' },
+                { level: 'info', type: '天气异常', message: '明日有小到中雨，请做好防护准备。' }
+            ]
+        },
+        1: { // 浙江舟山
+            name: '舟山群岛海洋牧场',
+            seaArea: '620平方公里',
+            speciesCount: '15种',
+            waterQuality: '良好',
+            alertCount: '3个',
+            location: '舟山市普陀区东海海域',
+            waterDepth: '20-60米',
+            currentStatus: '海流活跃，营养丰富',
+            establishTime: '2019年3月',
+            introduction: '舟山海洋牧场位于东海渔场核心区域，是我国重要的海洋渔业基地。该牧场充分利用舟山群岛独特的地理优势，发展深水养殖和生态旅游。',
+            species: [
+                { name: '黄鱼', quantity: '300万尾', status: '生长良好' },
+                { name: '带鱼', quantity: '180万尾', status: '正常' },
+                { name: '石斑鱼', quantity: '50万尾', status: '培育期' },
+                { name: '梭子蟹', quantity: '120万只', status: '收获期' },
+                { name: '大黄鱼', quantity: '200万尾', status: '生长中' }
+            ],
+            alerts: []
+        },
+        2: { // 福建厦门
+            name: '厦门湾海洋牧场',
+            seaArea: '380平方公里',
+            speciesCount: '10种',
+            waterQuality: '良好',
+            alertCount: '1个',
+            location: '厦门市翔安区海域',
+            waterDepth: '10-35米',
+            currentStatus: '水温适宜，海流平稳',
+            establishTime: '2020年1月',
+            introduction: '厦门湾海洋牧场结合了传统养殖与现代科技，打造了集养殖、科研、观光于一体的综合性海洋牧场。',
+            species: [
+                { name: '石斑鱼', quantity: '100万尾', status: '生长良好' },
+                { name: '鲈鱼', quantity: '150万尾', status: '正常' },
+                { name: '牡蛎', quantity: '800万只', status: '收获期' },
+                { name: '青蟹', quantity: '60万只', status: '培育中' }
+            ],
+            alerts: []
+        },
+        3: { // 广东湛江
+            name: '湛江海洋牧场',
+            seaArea: '450平方公里',
+            speciesCount: '8种',
+            waterQuality: '优秀',
+            alertCount: '0个',
+            location: '湛江市徐闻县海域',
+            waterDepth: '15-40米',
+            currentStatus: '热带海域，水温恒定',
+            establishTime: '2019年9月',
+            introduction: '湛江海洋牧场位于中国大陆最南端，拥有得天独厚的热带海洋资源，适合多种热带鱼类养殖。',
+            species: [
+                { name: '金鲳鱼', quantity: '250万尾', status: '生长良好' },
+                { name: '军曹鱼', quantity: '180万尾', status: '正常' },
+                { name: '珍珠贝', quantity: '500万只', status: '培育期' },
+                { name: '龙虾', quantity: '30万只', status: '生长中' }
+            ],
+            alerts: []
+        },
+        4: { // 辽宁大连
+            name: '大连海洋牧场',
+            seaArea: '720平方公里',
+            speciesCount: '14种',
+            waterQuality: '良好',
+            alertCount: '4个',
+            location: '大连市长海县海域',
+            waterDepth: '20-55米',
+            currentStatus: '冷水性海域，适合冷水鱼类',
+            establishTime: '2017年5月',
+            introduction: '大连海洋牧场是北方重要的海洋养殖基地，专注于冷水性经济鱼类和海珍品的养殖，拥有完善的冷链物流体系。',
+            species: [
+                { name: '海参', quantity: '300万头', status: '生长良好' },
+                { name: '鲍鱼', quantity: '200万只', status: '正常' },
+                { name: '海胆', quantity: '150万只', status: '收获期' },
+                { name: '扇贝', quantity: '600万只', status: '培育中' },
+                { name: '海螺', quantity: '100万只', status: '生长中' }
+            ],
+            alerts: []
+        },
+        5: { // 河北秦皇岛
+            name: '秦皇岛海洋牧场',
+            seaArea: '320平方公里',
+            speciesCount: '9种',
+            waterQuality: '良好',
+            alertCount: '2个',
+            location: '秦皇岛市北戴河新区海域',
+            waterDepth: '10-30米',
+            currentStatus: '渤海湾内，风浪较小',
+            establishTime: '2020年7月',
+            introduction: '秦皇岛海洋牧场位于渤海湾内，环境相对封闭，适合发展休闲渔业和生态旅游，是京津冀地区重要的海产品供应基地。',
+            species: [
+                { name: '对虾', quantity: '400万尾', status: '生长良好' },
+                { name: '梭子蟹', quantity: '180万只', status: '正常' },
+                { name: '贝类', quantity: '600万只', status: '丰收期' },
+                { name: '海蜇', quantity: '50万只', status: '培育中' }
+            ],
+            alerts: []
+        }
+    };
+
+/*
+    * 报警处理
+*/
+
+    // CSV文件操作
+    const csvOperations = {
+        // 从CSV文件加载警报
+        loadAlertsFromCSV: async function(ranchName) {
+            try {
+                // 调用API获取警报数据
+                const response = await fetch(`/api/alerts/${encodeURIComponent(ranchName)}`);
+                if (!response.ok) {
+                    console.error('加载警报数据失败:', response.statusText);
+                    return [];
+                }
+                
+                const alerts = await response.json();
+                return alerts;
+            } catch (error) {
+                console.error('加载警报数据时出错:', error);
+                return [];
+            }
+        },
+        
+        // 更新警报到CSV文件
+        updateAlertsInCSV: async function(ranchName, newAlerts) {
+            try {
+                // 调用API更新警报数据
+                const response = await fetch(`/api/alerts/${encodeURIComponent(ranchName)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(newAlerts)
+                });
+                
+                if (!response.ok) {
+                    console.error('更新警报数据失败:', response.statusText);
+                    return [];
+                }
+                
+                const updatedAlerts = await response.json();
+                return updatedAlerts;
+            } catch (error) {
+                console.error('更新警报数据时出错:', error);
+                return [];
+            }
+        },
+        
+        // 删除特定警报
+        deleteAlert: async function(ranchName, alertIndex) {
+            try {
+                // 调用API删除警报
+                const response = await fetch(`/api/alerts/${encodeURIComponent(ranchName)}/${alertIndex}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                    console.error('删除警报失败:', response.statusText);
+                    return null;
+                }
+                
+                const result = await response.json();
+                return result.alerts;
+            } catch (error) {
+                console.error('删除警报时出错:', error);
+                return null;
+            }
+        },
+
+        // 删除所有警报
+        deleteAllAlerts: async function(ranchName) {
+            try {
+                // 调用API删除所有警报
+                const response = await fetch(`/api/alerts/${encodeURIComponent(ranchName)}/all`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                    console.error('删除所有警报失败:', response.statusText);
+                    return null;
+                }
+                
+                const result = await response.json();
+                return result.alerts; // 返回空数组
+            } catch (error) {
+                console.error('删除所有警报时出错:', error);
+                return null;
+            }
+        },
+        
+        // 初始化所有牧场的警报文件
+        initAlertsFiles: async function(ranchNames) {
+            try {
+                // 调用API初始化警报文件
+                const response = await fetch('/api/init_alerts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ranch_names: ranchNames })
+                });
+                
+                if (!response.ok) {
+                    console.error('初始化警报文件失败:', response.statusText);
+                    return false;
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('初始化警报文件时出错:', error);
+                return false;
+            }
+        }
+    };
+
+    // 删除警报的处理函数
+    async function deleteAlertHandler(ranchName, alertIndex) {
+        // 确认删除
+        if (confirm('确定要删除此警报吗？')) {
+            // 调用API删除警报
+            const updatedAlerts = await csvOperations.deleteAlert(ranchName, alertIndex);
+            
+            if (updatedAlerts) {
+                // 更新当前显示
+                const currentIndex = document.getElementById('marineFarmSelect').value;
+                if (currentIndex !== '') {
+                    await updateRanchContent(currentIndex);
+                }
+            }
+        }
+    }
+
+    // 删除所有警报的处理函数
+    async function deleteAllAlertsHandler(ranchName) {
+        // 检查牧场名称是否有效
+        if (!ranchName) {
+            alert('请先选择一个牧场');
+            return;
+        }
+        
+        // 确认删除
+        if (confirm(`确定要删除 "${ranchName}" 牧场的所有警报吗？此操作不可撤销！`)) {
+            try {
+                // 显示加载状态
+                const clearBtn = document.getElementById('clearBtn');
+                if (clearBtn) {
+                    clearBtn.disabled = true;
+                    clearBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>删除中...';
+                }
+                
+                // 调用API删除所有警报
+                const result = await csvOperations.deleteAllAlerts(ranchName);
+                
+                if (result !== null) {
+                    // 删除成功，更新当前显示
+                    const currentIndex = document.getElementById('marineFarmSelect').value;
+                    if (currentIndex !== '') {
+                        await updateRanchContent(currentIndex);
+                    }
+                    
+                    // 显示成功提示
+                    alert('所有警报已成功删除！');
+                } else {
+                    // 删除失败
+                    alert('删除失败，请重试');
+                }
+            } catch (error) {
+                console.error('删除所有警报时出错:', error);
+                alert('删除过程中出现错误，请重试');
+            } finally {
+                // 恢复按钮状态
+                const clearBtn = document.getElementById('clearBtn');
+                if (clearBtn) {
+                    clearBtn.disabled = false;
+                    clearBtn.innerHTML = '<i class="fas fa-trash me-1"></i>清除所有';
+                }
+            }
+        }
+    }
+
+    // 获取当前选中牧场名称的函数
+    function getCurrentRanchName() {
+        const selectedIndex = localStorage.getItem('selectedMarineFarm');
+        const selectedRanch = marineRanches[selectedIndex];
+        return selectedRanch.name;
+    }
+
+    // 弹窗警报系统
+    const alertPopupSystem = {
+        // 存储已经显示过的警报ID，防止重复弹窗
+        shownAlerts: new Set(),
+        
+        // 批量处理警报的配置
+        batchConfig: {
+            maxSingleAlerts: 2,      // 最多单独显示2个警报
+            batchDelay: 500,         // 批量收集延迟时间(ms)
+            priorityLevels: {        // 优先级配置
+                'danger': 3,
+                'warning': 2,
+                'info': 1
+            }
+        },
+        
+        // 待处理的警报队列
+        pendingAlerts: [],
+        batchTimer: null,
+        
+        // 主要的警报显示方法 - 支持批量处理
+        showAlerts(alerts) {
+            if (!Array.isArray(alerts)) {
+                alerts = [alerts];
+            }
+            
+            // 过滤掉已显示的警报
+            const newAlerts = alerts.filter(alert => {
+                const alertId = `${alert.message}-${alert.timestamp}`;
+                if (this.shownAlerts.has(alertId)) {
+                    return false;
+                }
+                this.shownAlerts.add(alertId);
+                return true;
+            });
+            
+            if (newAlerts.length === 0) {
+                return;
+            }
+            
+            // 根据警报数量选择显示策略
+            if (newAlerts.length === 1) {
+                // 单个警报直接显示
+                this.showSingleAlert(newAlerts[0]);
+            } else if (newAlerts.length <= this.batchConfig.maxSingleAlerts) {
+                // 少量警报逐个显示，但有延迟
+                this.showSequentialAlerts(newAlerts);
+            } else {
+                // 大量警报合并显示
+                this.showBatchAlert(newAlerts);
+            }
+        },
+        
+        // 显示单个警报
+        showSingleAlert(alert) {
+            const popupOptions = this.getAlertOptions(alert);
+            this.showCustomPopup(popupOptions);
+            
+            // 危险警报播放声音
+            if (alert.level === 'danger') {
+                this.playAlertSound();
+            }
+        },
+        
+        // 顺序显示多个警报（带延迟）
+        showSequentialAlerts(alerts) {
+            // 按优先级排序
+            const sortedAlerts = this.sortAlertsByPriority(alerts);
+            
+            sortedAlerts.forEach((alert, index) => {
+                setTimeout(() => {
+                    this.showSingleAlert(alert);
+                }, index * 1000); // 每个警报间隔1秒
+            });
+        },
+        
+        // 批量显示警报（合并在一个弹窗中）
+        showBatchAlert(alerts) {
+            // 按优先级分组
+            const groupedAlerts = this.groupAlertsByLevel(alerts);
+            const sortedAlerts = this.sortAlertsByPriority(alerts);
+            
+            // 统计信息
+            const stats = {
+                danger: groupedAlerts.danger?.length || 0,
+                warning: groupedAlerts.warning?.length || 0,
+                info: groupedAlerts.info?.length || 0,
+                total: alerts.length
+            };
+            
+            // 确定最高优先级
+            const highestLevel = stats.danger > 0 ? 'danger' : 
+                            stats.warning > 0 ? 'warning' : 'info';
+            
+            // 创建批量弹窗
+            this.showBatchPopup(sortedAlerts, stats, highestLevel);
+            
+            // 如有危险警报，播放声音
+            if (stats.danger > 0) {
+                this.playAlertSound();
+            }
+        },
+        
+        // 创建批量警报弹窗
+        showBatchPopup(alerts, stats, level) {
+            try {
+                const popup = document.createElement('div');
+                popup.style.cssText = `
+                    position: fixed;
+                    z-index: 9999;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                    min-width: 400px;
+                    max-width: 600px;
+                    max-height: 70vh;
+                    overflow-y: auto;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                `;
+                
+                // 根据最高优先级设置样式
+                const styles = this.getBatchPopupStyles(level);
+                popup.style.backgroundColor = styles.bgColor;
+                popup.style.borderLeft = styles.borderLeft;
+                popup.style.color = styles.textColor;
+                
+                // 构建内容
+                let content = `
+                    <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 10px;">
+                        <div>
+                            <h3 style="margin: 0; font-size: 18px;">
+                                ${this.getBatchTitle(stats, level)}
+                            </h3>
+                            <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">
+                                ${this.getBatchSummary(stats)}
+                            </div>
+                        </div>
+                        <button id="closeBatchPopup" style="background: none; border: none; font-size: 20px; cursor: pointer; opacity: 0.6; margin-left: 20px;">&times;</button>
+                    </div>
+                    
+                    <div style="max-height: 300px; overflow-y: auto;">
+                `;
+                
+                // 添加警报列表
+                alerts.slice(0, 10).forEach((alert, index) => {
+                    const alertStyles = this.getAlertItemStyles(alert.level);
+                    content += `
+                        <div style="margin-bottom: 8px; padding: 10px; border-radius: 4px; font-size: 14px; ${alertStyles}">
+                            <div style="font-weight: bold; margin-bottom: 4px;">
+                                ${this.getAlertIcon(alert.level)} ${alert.type}
+                            </div>
+                            <div>${alert.message}</div>
+                            <div style="font-size: 11px; opacity: 0.7; margin-top: 4px;">${alert.timestamp}</div>
+                        </div>
+                    `;
+                });
+                
+                // 如果警报太多，显示省略信息
+                if (alerts.length > 10) {
+                    content += `
+                        <div style="text-align: center; padding: 10px; font-style: italic; opacity: 0.8;">
+                            ... 还有 ${alerts.length - 10} 条警报未显示
+                        </div>
+                    `;
+                }
+                
+                content += `
+                    </div>
+                    
+                    <div style="text-align: right; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(0,0,0,0.1);">
+                        <button id="viewAllAlerts" style="padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">
+                            查看所有警报
+                        </button>
+                        <button id="confirmBatchPopup" style="padding: 8px 16px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            我已知晓
+                        </button>
+                    </div>
+                `;
+                
+                popup.innerHTML = content;
+                
+                // 添加遮罩层
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0,0,0,0.5);
+                    z-index: 9998;
+                `;
+                
+                // 添加到DOM
+                document.body.appendChild(overlay);
+                document.body.appendChild(popup);
+                
+                // 绑定事件
+                const closeHandler = () => {
+                    document.body.removeChild(popup);
+                    document.body.removeChild(overlay);
+                };
+                
+                document.getElementById('closeBatchPopup').addEventListener('click', closeHandler);
+                document.getElementById('confirmBatchPopup').addEventListener('click', closeHandler);
+                
+                // 查看所有警报按钮
+                document.getElementById('viewAllAlerts').addEventListener('click', () => {
+                    closeHandler();
+                    // 这里可以触发显示警报详情页面的事件
+                    this.showAllAlertsDetail(alerts);
+                });
+                
+                // 点击遮罩层关闭
+                overlay.addEventListener('click', closeHandler);
+                
+            } catch (e) {
+                console.error('创建批量警报弹窗失败:', e);
+            }
+        },
+        
+        // 获取警报选项配置
+        getAlertOptions(alert) {
+            switch(alert.level) {
+                case 'danger':
+                    return {
+                        icon: 'error',
+                        title: `严重警报：${alert.type}`,
+                        text: alert.message,
+                        confirmButtonText: '我已了解',
+                        confirmButtonColor: '#dc3545',
+                        timer: 0,
+                    };
+                case 'warning':
+                    return {
+                        icon: 'warning',
+                        title: `警告：${alert.type}`,
+                        text: alert.message,
+                        confirmButtonText: '确认',
+                        confirmButtonColor: '#ffc107',
+                        timer: 120000,
+                    };
+                default:
+                    return {
+                        icon: 'info',
+                        title: `提示：${alert.type}`,
+                        text: alert.message,
+                        timer: 60000,
+                    };
+            }
+        },
+        
+        // 按优先级排序警报
+        sortAlertsByPriority(alerts) {
+            return alerts.sort((a, b) => {
+                const priorityA = this.batchConfig.priorityLevels[a.level] || 0;
+                const priorityB = this.batchConfig.priorityLevels[b.level] || 0;
+                return priorityB - priorityA; // 降序排列
+            });
+        },
+        
+        // 按级别分组警报
+        groupAlertsByLevel(alerts) {
+            return alerts.reduce((groups, alert) => {
+                const level = alert.level || 'info';
+                if (!groups[level]) groups[level] = [];
+                groups[level].push(alert);
+                return groups;
+            }, {});
+        },
+        
+        // 获取批量弹窗样式
+        getBatchPopupStyles(level) {
+            switch(level) {
+                case 'danger':
+                    return {
+                        bgColor: '#f8d7da',
+                        borderLeft: '5px solid #dc3545',
+                        textColor: '#721c24'
+                    };
+                case 'warning':
+                    return {
+                        bgColor: '#fff3cd',
+                        borderLeft: '5px solid #ffc107',
+                        textColor: '#856404'
+                    };
+                default:
+                    return {
+                        bgColor: '#d1ecf1',
+                        borderLeft: '5px solid #17a2b8',
+                        textColor: '#0c5460'
+                    };
+            }
+        },
+        
+        // 获取警报项样式
+        getAlertItemStyles(level) {
+            switch(level) {
+                case 'danger':
+                    return 'background-color: rgba(220, 53, 69, 0.1); border-left: 3px solid #dc3545;';
+                case 'warning':
+                    return 'background-color: rgba(255, 193, 7, 0.1); border-left: 3px solid #ffc107;';
+                default:
+                    return 'background-color: rgba(23, 162, 184, 0.1); border-left: 3px solid #17a2b8;';
+            }
+        },
+        
+        // 获取警报图标
+        getAlertIcon(level) {
+            switch(level) {
+                case 'danger': return '🚨';
+                case 'warning': return '⚠️';
+                default: return 'ℹ️';
+            }
+        },
+        
+        // 获取批量标题
+        getBatchTitle(stats, level) {
+            if (stats.danger > 0) {
+                return `⚠️ 发现 ${stats.total} 条重要警报`;
+            } else if (stats.warning > 0) {
+                return `📋 收到 ${stats.total} 条系统警报`;
+            } else {
+                return `📝 ${stats.total} 条系统提醒`;
+            }
+        },
+        
+        // 获取批量摘要
+        getBatchSummary(stats) {
+            let summary = [];
+            if (stats.danger > 0) summary.push(`${stats.danger}条严重警报`);
+            if (stats.warning > 0) summary.push(`${stats.warning}条警告`);
+            if (stats.info > 0) summary.push(`${stats.info}条提醒`);
+            return summary.join(' · ');
+        },
+        
+        // 显示所有警报详情（可以跳转到警报页面或展开详情）
+        showAllAlertsDetail(alerts) {
+            console.log('显示所有警报详情:', alerts);
+        },
+        
+        // 创建自定义弹窗
+        showCustomPopup(options) {
+            try {
+                // 创建弹窗元素
+                const popup = document.createElement('div');
+                popup.style.position = 'fixed';
+                popup.style.zIndex = '9999';
+                popup.style.top = '20px';
+                popup.style.right = '20px';
+                popup.style.padding = '15px 20px';
+                popup.style.borderRadius = '5px';
+                popup.style.boxShadow = '0 3px 10px rgba(0,0,0,0.2)';
+                popup.style.minWidth = '280px';
+                popup.style.maxWidth = '450px';
+                
+                // 根据警报级别设置样式
+                if (options.icon === 'error') {
+                    popup.style.backgroundColor = '#f8d7da';
+                    popup.style.borderLeft = '5px solid #dc3545';
+                    popup.style.color = '#721c24';
+                } else if (options.icon === 'warning') {
+                    popup.style.backgroundColor = '#fff3cd';
+                    popup.style.borderLeft = '5px solid #ffc107';
+                    popup.style.color = '#856404';
+                } else {
+                    popup.style.backgroundColor = '#d1ecf1';
+                    popup.style.borderLeft = '5px solid #17a2b8';
+                    popup.style.color = '#0c5460';
+                }
+                
+                // 添加内容
+                popup.innerHTML = `
+                    <div style="margin-bottom: 10px; font-weight: bold; font-size: 16px;">
+                        ${options.title || '警报'}
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        ${options.text || ''}
+                    </div>
+                    <div style="text-align: right;">
+                        <button id="closePopup" style="padding: 5px 12px; background-color: #6c757d; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                            关闭
+                        </button>
+                    </div>
+                `;
+                
+                // 添加到DOM
+                document.body.appendChild(popup);
+                
+                // 添加关闭按钮功能
+                document.getElementById('closePopup').addEventListener('click', function() {
+                    document.body.removeChild(popup);
+                });
+                
+                // 如果设置了timer，添加自动关闭功能
+                if (options.timer) {
+                    setTimeout(() => {
+                        if (document.body.contains(popup)) {
+                            document.body.removeChild(popup);
+                        }
+                    }, options.timer);
+                }
+            } catch (e) {
+                console.error('创建自定义弹窗失败:', e);
+            }
+        },
+        
+        playAlertSound() {
+            try {
+                const audio = new Audio('/assets/sounds/alert.mp3');
+                audio.play();
+            } catch (e) {
+                console.error('无法播放警报声音:', e);
+            }
+        },
+        
+        clearShownAlerts() {
+            this.shownAlerts.clear();
+        }
+    };
+
+/*
+    * 水质警报处理
+*/
+
+    // 全局水质数据存储
+    let globalWaterQualityData = {};
+
+    // 水质异常检测规则
+    const waterQualityAlertRules = {
+        // 严重污染 - 危险级别 (劣V类)
+        severePollution: {
+            conditions: [
+                { parameter: 'dissolvedOxygen', threshold: 2, operator: '<', unit: 'mg/L' },
+                { parameter: 'cod', threshold: 40, operator: '>', unit: 'mg/L' },
+                { parameter: 'ammoniaNitrogen', threshold: 2.0, operator: '>', unit: 'mg/L' },
+                { parameter: 'totalPhosphorus', threshold: 0.4, operator: '>', unit: 'mg/L' },
+                { parameter: 'totalNitrogen', threshold: 2.0, operator: '>', unit: 'mg/L' }
+            ],
+            level: 'danger',
+            type: '严重污染',
+            getMessage: (data, param) => {
+                if (param === 'dissolvedOxygen') {
+                    return `严重缺氧警告！溶解氧浓度${data.dissolvedOxygen}mg/L，水体严重缺氧，水生生物面临死亡风险！`;
+                } else if (param === 'cod') {
+                    return `有机污染严重！化学需氧量${data.cod}mg/L，水体有机污染严重超标！`;
+                } else if (param === 'ammoniaNitrogen') {
+                    return `氨氮严重超标！浓度${data.ammoniaNitrogen}mg/L，可能导致水体富营养化！`;
+                } else if (param === 'totalPhosphorus') {
+                    return `总磷严重超标！浓度${data.totalPhosphorus}mg/L，水体富营养化严重！`;
+                } else if (param === 'totalNitrogen') {
+                    return `总氮严重超标！浓度${data.totalNitrogen}mg/L，水体营养盐严重过量！`;
+                }
+            }
+        },
+        // 重度污染 - 警告级别 (V类水质)
+        heavyPollution: {
+            conditions: [
+                { parameter: 'dissolvedOxygen', threshold: 3, operator: '<', unit: 'mg/L' },
+                { parameter: 'dissolvedOxygen', threshold: 2, operator: '>=', unit: 'mg/L' },
+                { parameter: 'cod', threshold: 30, operator: '>', unit: 'mg/L' },
+                { parameter: 'cod', threshold: 40, operator: '<=', unit: 'mg/L' },
+                { parameter: 'ammoniaNitrogen', threshold: 1.5, operator: '>', unit: 'mg/L' },
+                { parameter: 'ammoniaNitrogen', threshold: 2.0, operator: '<=', unit: 'mg/L' },
+                { parameter: 'totalPhosphorus', threshold: 0.2, operator: '>', unit: 'mg/L' },
+                { parameter: 'totalPhosphorus', threshold: 0.4, operator: '<=', unit: 'mg/L' }
+            ],
+            level: 'warning',
+            type: '重度污染',
+            getMessage: (data, param) => {
+                if (param === 'dissolvedOxygen') {
+                    return `溶解氧偏低警告：当前${data.dissolvedOxygen}mg/L，水体开始缺氧。`;
+                } else if (param === 'cod') {
+                    return `化学需氧量超标警告：当前${data.cod}mg/L，水体有机污染较重。`;
+                } else if (param === 'ammoniaNitrogen') {
+                    return `氨氮超标警告：浓度${data.ammoniaNitrogen}mg/L，水体污染加重。`;
+                } else if (param === 'totalPhosphorus') {
+                    return `总磷超标警告：浓度${data.totalPhosphorus}mg/L，可能引起水体富营养化。`;
+                }
+            }
+        },
+        // 中度污染 - 注意级别 (IV类水质)
+        moderatePollution: {
+            conditions: [
+                { parameter: 'dissolvedOxygen', threshold: 5, operator: '<', unit: 'mg/L' },
+                { parameter: 'dissolvedOxygen', threshold: 3, operator: '>=', unit: 'mg/L' },
+                { parameter: 'cod', threshold: 20, operator: '>', unit: 'mg/L' },
+                { parameter: 'cod', threshold: 30, operator: '<=', unit: 'mg/L' },
+                { parameter: 'ammoniaNitrogen', threshold: 1.0, operator: '>', unit: 'mg/L' },
+                { parameter: 'ammoniaNitrogen', threshold: 1.5, operator: '<=', unit: 'mg/L' },
+                { parameter: 'totalPhosphorus', threshold: 0.1, operator: '>', unit: 'mg/L' },
+                { parameter: 'totalPhosphorus', threshold: 0.2, operator: '<=', unit: 'mg/L' },
+                { parameter: 'conductivity', threshold: 1000, operator: '>', unit: 'μS/cm' },
+                { parameter: 'turbidity', threshold: 5, operator: '>', unit: 'NTU' }
+            ],
+            level: 'info',
+            type: '中度污染',
+            getMessage: (data, param) => {
+                if (param === 'dissolvedOxygen') {
+                    return `溶解氧偏低提醒：当前${data.dissolvedOxygen}mg/L，建议关注水体含氧量。`;
+                } else if (param === 'cod') {
+                    return `化学需氧量偏高：当前${data.cod}mg/L，水体有机物含量较高。`;
+                } else if (param === 'ammoniaNitrogen') {
+                    return `氨氮偏高提醒：浓度${data.ammoniaNitrogen}mg/L，水质开始下降。`;
+                } else if (param === 'totalPhosphorus') {
+                    return `总磷偏高提醒：浓度${data.totalPhosphorus}mg/L，需要关注。`;
+                } else if (param === 'conductivity') {
+                    return `电导率偏高：当前${data.conductivity}μS/cm，水体矿化度较高。`;
+                } else if (param === 'turbidity') {
+                    return `浊度偏高提醒：当前${data.turbidity}NTU，水体透明度下降。`;
+                }
+            }
+        },
+        // pH异常
+        pHAnomaly: {
+            highPH: 9,
+            lowPH: 6,
+            level: 'warning',
+            type: 'pH异常',
+            getMessage: (data) => {
+                if (data.pH > 9) {
+                    return `pH值过高警告：当前pH=${data.pH}，水体呈强碱性，可能影响水生生物生存。`;
+                } else if (data.pH < 6) {
+                    return `pH值过低警告：当前pH=${data.pH}，水体呈酸性，可能腐蚀性较强。`;
+                }
+                return null;
+            }
+        },
+        // 温度异常
+        temperatureAnomaly: {
+            highTemp: 35, // 高温阈值
+            lowTemp: 0,   // 低温阈值
+            level: 'info',
+            type: '水温异常',
+            getMessage: (data) => {
+                if (data.waterTemp > 35) {
+                    return `水温过高提醒：当前水温${data.waterTemp}°C，可能影响水体溶氧能力。`;
+                } else if (data.waterTemp < 0) {
+                    return `水温过低提醒：当前水温${data.waterTemp}°C，水体可能结冰。`;
+                }
+                return null;
+            }
+        }
+    };
+
+    // 检测水质异常
+    function detectWaterQualityAnomalies(waterData) {
+        const alerts = [];
+        
+        // 检查严重污染
+        waterQualityAlertRules.severePollution.conditions.forEach(condition => {
+            const value = waterData[condition.parameter];
+            if (value !== undefined && checkCondition(value, condition.threshold, condition.operator)) {
+                alerts.push({
+                    level: waterQualityAlertRules.severePollution.level,
+                    type: waterQualityAlertRules.severePollution.type,
+                    message: waterQualityAlertRules.severePollution.getMessage(waterData, condition.parameter),
+                    timestamp: new Date().toISOString()
+                });
+            }
+        });
+
+        // 检查重度污染
+        waterQualityAlertRules.heavyPollution.conditions.forEach(condition => {
+            const value = waterData[condition.parameter];
+            if (value !== undefined && checkCondition(value, condition.threshold, condition.operator)) {
+                alerts.push({
+                    level: waterQualityAlertRules.heavyPollution.level,
+                    type: waterQualityAlertRules.heavyPollution.type,
+                    message: waterQualityAlertRules.heavyPollution.getMessage(waterData, condition.parameter),
+                    timestamp: new Date().toISOString()
+                });
+            }
+        });
+
+        // 检查中度污染
+        waterQualityAlertRules.moderatePollution.conditions.forEach(condition => {
+            const value = waterData[condition.parameter];
+            if (value !== undefined && checkCondition(value, condition.threshold, condition.operator)) {
+                alerts.push({
+                    level: waterQualityAlertRules.moderatePollution.level,
+                    type: waterQualityAlertRules.moderatePollution.type,
+                    message: waterQualityAlertRules.moderatePollution.getMessage(waterData, condition.parameter),
+                    timestamp: new Date().toISOString()
+                });
+            }
+        });
+
+        // 检查pH异常
+        if (waterData.pH > waterQualityAlertRules.pHAnomaly.highPH || 
+            waterData.pH < waterQualityAlertRules.pHAnomaly.lowPH) {
+            const pHMessage = waterQualityAlertRules.pHAnomaly.getMessage(waterData);
+            
+            if (pHMessage) {
+                alerts.push({
+                    level: waterQualityAlertRules.pHAnomaly.level,
+                    type: waterQualityAlertRules.pHAnomaly.type,
+                    message: pHMessage,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        }
+
+        // 检查温度异常
+        if (waterData.waterTemp > waterQualityAlertRules.temperatureAnomaly.highTemp || 
+            waterData.waterTemp < waterQualityAlertRules.temperatureAnomaly.lowTemp) {
+            const tempMessage = waterQualityAlertRules.temperatureAnomaly.getMessage(waterData);
+            
+            if (tempMessage) {
+                alerts.push({
+                    level: waterQualityAlertRules.temperatureAnomaly.level,
+                    type: waterQualityAlertRules.temperatureAnomaly.type,
+                    message: tempMessage,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        }
+
+        return alerts;
+    }
+
+    // 辅助函数：检查条件
+    function checkCondition(value, threshold, operator) {
+        switch (operator) {
+            case '>':
+                return value > threshold;
+            case '<':
+                return value < threshold;
+            case '>=':
+                return value >= threshold;
+            case '<=':
+                return value <= threshold;
+            case '==':
+                return value == threshold;
+            default:
+                return false;
+        }
+    }
+
+    // 海洋牧场与水质监测点的映射配置
+    const marineRanchWaterQualityMapping = {
+        '山东青岛': {
+            files: ['../static/water_quality/山东省/黄河流域/王台大桥(流泽桥)/2021-04/王台大桥(流泽桥).csv', 
+            '../static/water_quality/山东省/黄河流域/贺小庄/2021-04/贺小庄.csv'],
+            priority: 0 // 优先使用第一个监测点
+        },
+        '浙江舟山': {
+            files: ['../static/water_quality/浙江省/太湖流域/新塘/2021-04/新塘.csv', 
+            '../static/water_quality/浙江省/太湖流域/城西大桥/2021-04/城西大桥.csv'], 
+            priority: 0
+        },
+        '福建厦门': {
+            files: ['../static/water_quality/福建省/浙闽片河流/江口桥/2021-04/江口桥.csv'],
+            priority: 0
+        },
+        '广东湛江': {
+            files: ['../static/water_quality/广东省/珠江流域/赤坎水厂(塘口取水口)/2021-04/赤坎水厂(塘口取水口).csv'],
+            priority: 0
+        },
+        '辽宁大连': {
+            files: ['../static/water_quality/辽宁省/辽河流域/三台子/2021-04/三台子.csv', 
+            '../static/water_quality/辽宁省/辽河流域/红石碑入海前/2021-04/红石碑入海前.csv', 
+            '../static/water_quality/辽宁省/辽河流域/蒲石河大桥/2021-04/蒲石河大桥.csv'],
+            priority: 0
+        },
+        '河北秦皇岛': {
+            files: ['../static/water_quality/河北省/海河流域/戴河口/2021-04/戴河口.csv', 
+            '../static/water_quality/河北省/海河流域/汤河口/2021-04/汤河口.csv', 
+            '../static/water_quality/河北省/海河流域/洋河口/2021-04/洋河口.csv'],
+            priority: 0
+        }
+    };
+
+    // 从CSV文件加载水质数据
+    async function loadWaterQualityFromCSV(ranchName) {
+        try {
+            const mapping = marineRanchWaterQualityMapping[ranchName];
+            if (!mapping) {
+                console.warn(`未找到海洋牧场 ${ranchName} 的水质数据映射配置`);
+                return null;
+            }
+
+            // 尝试加载所有关联的CSV文件，取第一个成功的
+            let waterQualityData = null;
+            let loadedFromFile = null;
+
+            // 优先加载主要监测点的数据
+            const priorityFile = mapping.files[mapping.priority];
+            try {
+                waterQualityData = await loadSingleWaterQualityCSV(priorityFile);
+                if (waterQualityData) {
+                    loadedFromFile = priorityFile;
+                    console.log(`从主要监测点加载水质数据: ${priorityFile}`);
+                }
+            } catch (error) {
+                console.warn(`加载主要监测点数据失败 (${priorityFile}):`, error.message);
+            }
+
+            // 如果主要监测点数据加载失败，尝试其他监测点
+            if (!waterQualityData) {
+                for (const filePath of mapping.files) {
+                    if (filePath === priorityFile) continue; // 跳过已尝试的主要监测点
+
+                    try {
+                        waterQualityData = await loadSingleWaterQualityCSV(filePath);
+                        if (waterQualityData) {
+                            loadedFromFile = filePath;
+                            console.log(`从备用监测点加载水质数据: ${filePath}`);
+                            break;
+                        }
+                    } catch (error) {
+                        console.warn(`加载备用监测点数据失败 (${filePath}):`, error.message);
+                    }
+                }
+            }
+
+            if (waterQualityData) {
+                // 添加海洋牧场信息和数据源信息
+                waterQualityData.ranchName = ranchName;
+                waterQualityData.dataSource = loadedFromFile;
+                waterQualityData.allSources = mapping.files;
+                return waterQualityData;
+            } else {
+                console.error(`所有监测点数据加载失败: ${ranchName}`);
+                return null;
+            }
+            
+        } catch (error) {
+            console.error(`加载水质数据失败 (${ranchName}):`, error);
+            return null;
+        }
+    }
+
+    // 加载单个CSV文件的水质数据
+    async function loadSingleWaterQualityCSV(filePath) {
+        const response = await fetch(filePath);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const csvText = await response.text();
+        const lines = csvText.split('\n').filter(line => line.trim());
+        
+        if (lines.length < 2) {
+            throw new Error('CSV文件无有效数据行');
+        }
+        
+        // 解析表头
+        const headers = lines[0].split(',').map(h => h.trim());
+        
+        // 解析最新的一行数据（假设最后一行是最新数据）
+        const latestDataLine = lines[lines.length - 1].trim();
+        if (!latestDataLine) {
+            throw new Error('最新数据行为空');
+        }
+        
+        const values = latestDataLine.split(',').map(v => v.trim());
+        
+        // 验证数据完整性 - 根据新格式调整为17列
+        if (values.length < 17) {
+            throw new Error(`数据列数不足，期望17列，实际${values.length}列`);
+        }
+        
+        // 解析监测时间（格式：04-01 04:00）
+        const monitoringTime = values[3];
+        let timestamp;
+        try {
+            // 假设是当前年份，将 "04-01 04:00" 转换为完整日期
+            const currentYear = new Date().getFullYear();
+            const [dateStr, timeStr] = monitoringTime.split(' ');
+            const [month, day] = dateStr.split('-');
+            const [hour, minute] = timeStr.split(':');
+            timestamp = new Date(currentYear, parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute)).toISOString();
+        } catch (error) {
+            timestamp = new Date().toISOString();
+            console.warn('监测时间解析失败，使用当前时间:', error);
+        }
+        
+        // 辅助函数：安全解析数值，处理 '*' 等特殊值
+        function parseNumericValue(value, defaultValue = 0) {
+            if (value === '*' || value === '' || value === undefined) {
+                return null; // 用 null 表示无效数据
+            }
+            const parsed = parseFloat(value);
+            return isNaN(parsed) ? defaultValue : parsed;
+        }
+        
+        // 映射CSV数据到水质监测参数（按新的列顺序）
+        const waterQualityData = {
+            province: values[0] || '未知',              // 省份
+            watershed: values[1] || '未知',             // 流域
+            location: values[2] || '未知',              // 断面名称
+            qualityCategory: values[4] || '未知',       // 水质类别
+            waterTemp: parseNumericValue(values[5]),    // 水温(℃)
+            pH: parseNumericValue(values[6], 7),        // pH(无量纲)
+            dissolvedOxygen: parseNumericValue(values[7]), // 溶解氧(mg/L)
+            conductivity: parseNumericValue(values[8]), // 电导率(μS/cm)
+            turbidity: parseNumericValue(values[9]),    // 浊度(NTU)
+            cod: parseNumericValue(values[10]),         // 高锰酸盐指数(mg/L)
+            ammoniaNitrogen: parseNumericValue(values[11]), // 氨氮(mg/L)
+            totalPhosphorus: parseNumericValue(values[12]), // 总磷(mg/L)
+            totalNitrogen: parseNumericValue(values[13]),   // 总氮(mg/L)
+            timestamp: timestamp,                       // 标准化时间戳
+            rawData: values // 保存原始数据以供调试
+        };
+        
+        return waterQualityData;
+    }
+
+    // 获取所有海洋牧场的水质数据
+    async function fetchMarineRanchWaterQualityData(marineRanches) {
+        console.log('开始获取所有海洋牧场的水质数据...');
+        
+        const waterQualityDataPromises = marineRanches.map(async (ranch) => {
+            try {
+                console.log(`正在加载 ${ranch.name} 的水质数据...`);
+                const data = await loadWaterQualityFromCSV(ranch.name);
+                
+                if (data) {
+                    // 添加海洋牧场的基本信息
+                    return { 
+                        ...data, 
+                        name: ranch.name,
+                        province: ranch.province,
+                        city: ranch.city,
+                        coordinates: ranch.exactLocation
+                    };
+                } else {
+                    console.warn(`${ranch.name} 的水质数据加载失败`);
+                    return null;
+                }
+            } catch (error) {
+                console.error(`获取 ${ranch.name} 水质数据时出错:`, error);
+                return null;
+            }
+        });
+        
+        const results = await Promise.all(waterQualityDataPromises);
+        const validResults = results.filter(data => data !== null);
+        
+        console.log(`成功加载 ${validResults.length}/${marineRanches.length} 个海洋牧场的水质数据`);
+        return validResults;
+    }
+
+    // 获取指定海洋牧场的所有监测点数据
+    async function getAllWaterQualityDataForRanch(ranchName) {
+        try {
+            const mapping = marineRanchWaterQualityMapping[ranchName];
+            if (!mapping) {
+                console.warn(`未找到海洋牧场 ${ranchName} 的水质数据映射配置`);
+                return [];
+            }
+
+            const allDataPromises = mapping.files.map(async (filePath, index) => {
+                try {
+                    const data = await loadSingleWaterQualityCSV(filePath);
+                    return {
+                        ...data,
+                        monitoringPoint: filePath.split('/').pop().replace('.csv', ''),
+                        filePath: filePath,
+                        isPrimary: index === mapping.priority
+                    };
+                } catch (error) {
+                    console.warn(`加载监测点数据失败 (${filePath}):`, error.message);
+                    return null;
+                }
+            });
+
+            const results = await Promise.all(allDataPromises);
+            return results.filter(data => data !== null);
+
+        } catch (error) {
+            console.error(`获取 ${ranchName} 所有监测点数据失败:`, error);
+            return [];
+        }
+    }
+
+    // 更新水质警报
+    async function updateWaterQualityAlerts(selectedRanchIndex) {
+        const waterQualityData = Object.values(globalWaterQualityData);
+        
+        if (selectedRanchIndex !== null && selectedRanchIndex !== '') {
+            const selectedRanch = marineRanches[selectedRanchIndex];
+            const ranchWaterQuality = waterQualityData.find(w => w.name === selectedRanch.name);
+            
+            if (ranchWaterQuality) {
+                // 检测水质异常
+                const waterQualityAlerts = detectWaterQualityAnomalies(ranchWaterQuality);
+                
+                // 获取上一次的警报
+                let previousAlerts = [];
+                try {
+                    previousAlerts = await csvOperations.loadAlertsFromCSV(selectedRanch.name);
+                } catch (error) {
+                    console.error("获取历史水质警报失败:", error);
+                }
+                
+                // 将水质警报更新到CSV文件
+                const allAlerts = await csvOperations.updateAlertsInCSV(selectedRanch.name, waterQualityAlerts);
+                
+                // 识别新的警报（当前检测到但不在历史记录中的警报）
+                const newAlerts = waterQualityAlerts.filter(alert => {
+                    // 检查历史记录中是否已有同类型的警报
+                    return !previousAlerts.some(prevAlert => 
+                        prevAlert.type === alert.type && 
+                        prevAlert.level === alert.level && 
+                        prevAlert.message === alert.message
+                    );
+                });
+                
+                // // 为新的警报显示弹窗
+                // newAlerts.forEach(alert => {
+                //     alertPopupSystem.showAlertPopup(alert);
+                // });
+                alertPopupSystem.showAlerts(newAlerts);
+                
+                // 更新警报数量
+                document.getElementById('alertCount').textContent = `${allAlerts.length}个`;
+                
+                // 更新警报显示
+                const alertsContainer = document.getElementById('alertsContainer');
+                alertsContainer.innerHTML = '';
+                // 如果没有任何警报，显示正常状态
+                if (allAlerts.length === 0) {
+                    alertsContainer.innerHTML = '<div class="alert alert-success">当前无告警信息，系统运行正常。</div>';
+                } else {
+                    allAlerts.forEach((alert, index) => {
+                        const alertDiv = `
+                            <div class="alert alert-${alert.level}">
+                                <strong>${alert.type}：</strong> ${alert.message}
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">${new Date(alert.timestamp).toLocaleString()}</small>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteAlertHandler('${selectedRanch.name}', ${index})">
+                                        <i class="fas fa-times"></i> 删除
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        alertsContainer.innerHTML += alertDiv;
+                    });
+                }
+                
+                // // 更新水质信息显示
+                // updateWaterQualityDisplay(ranchWaterQuality);
+            }
+        }
+    }
+
+    // 更新水质信息显示
+    function updateWaterQualityDisplay(waterQualityData) {
+        // 更新水质状态显示
+        const waterQualityStatusElement = document.getElementById('waterQualityStatus');
+        if (waterQualityStatusElement) {
+            let statusClass = 'text-success';
+            let statusText = '优良';
+            
+            // 根据水质类别确定状态
+            switch (waterQualityData.qualityCategory) {
+                case 'I类':
+                case 'II类':
+                    statusClass = 'text-success';
+                    statusText = '优良';
+                    break;
+                case 'III类':
+                    statusClass = 'text-warning';
+                    statusText = '一般';
+                    break;
+                case 'IV类':
+                case 'V类':
+                    statusClass = 'text-danger';
+                    statusText = '较差';
+                    break;
+                default:
+                    statusClass = 'text-muted';
+                    statusText = '未知';
+            }
+            
+            waterQualityStatusElement.innerHTML = `
+                <i class="fas fa-tint ${statusClass}"></i> 
+                水质${waterQualityData.qualityCategory} - ${statusText} | 
+                温度: ${waterQualityData.waterTemp}°C | 
+                pH: ${waterQualityData.pH} | 
+                溶解氧: ${waterQualityData.dissolvedOxygen}mg/L
+            `;
+        }
+    }
+
+    // 初始化水质监测
+    async function initWaterQualityMonitoring() {
+        try {
+            console.log('开始初始化水质监测...');
+            
+            // 获取初始水质数据
+            const waterQualityData = await fetchMarineRanchWaterQualityData(marineRanches);
+            
+            // 存储到全局变量
+            waterQualityData.forEach(data => {
+                globalWaterQualityData[data.name] = data;
+            });
+
+            console.log('全局水质数据:', globalWaterQualityData);
+            
+            // 如果有选中的牧场，立即更新警报
+            const selectedIndex = localStorage.getItem('selectedMarineFarm');
+            if (selectedIndex !== null && selectedIndex !== '') {
+                await updateWaterQualityAlerts(selectedIndex);
+            }
+            
+            // 定期更新水质数据（每30分钟，因为水质变化相对较慢）
+            setInterval(async () => {
+                console.log('定期更新水质数据...');
+                const newWaterQualityData = await fetchMarineRanchWaterQualityData(marineRanches);
+                newWaterQualityData.forEach(data => {
+                    globalWaterQualityData[data.name] = data;
+                });
+                
+                // 更新当前选中牧场的警报
+                const currentIndex = document.getElementById('marineFarmSelect').value;
+                if (currentIndex !== '') {
+                    await updateWaterQualityAlerts(currentIndex);
+                }
+            }, 1800000); // 30分钟
+            
+            console.log('水质监测初始化完成');
+            
+        } catch (error) {
+            console.error('初始化水质监测失败:', error);
+        }
+    }
+
+    // // 更新水质警报
+    // async function updateWaterQualityAlerts(selectedRanchIndex) {
+
+    // }
+
+    // // 初始化水质数据
+    // async function initWaterQualityMonitoring() {
+    //     // try {
+    //     //     // 调用API获取水质数据
+    //     //     const response = await fetch('/api/water_quality');
+    //     //     if (!response.ok) {
+    //     //         console.error('加载水质数据失败:', response.statusText);
+    //     //         return;
+    //     //     }
+            
+    //     //     globalWaterQualityData = await response.json();
+    //     // } catch (error) {
+    //     //     console.error('加载水质数据时出错:', error);
+    //     // }
+    // }
+
+/*
+    * 天气警报处理
+*/
+
+    // 全局天气数据存储
+    let globalWeatherData = {};
+
+    // 天气异常检测规则
+    const weatherAlertRules = {
+        // 极端天气条件
+        extremeWeather: {
+            codes: [95, 96, 99], // 雷暴及雷暴伴有冰雹
+            level: 'danger',
+            type: '极端天气',
+            getMessage: (data) => `当前出现${data.weather}，请立即采取防护措施！`
+        },
+        // 强降水
+        heavyRain: {
+            codes: [65, 67, 75, 77, 82, 86], // 大雨、强冻雨、大雪、雪粒、大阵雨、大阵雪
+            level: 'danger',
+            type: '强降水',
+            getMessage: (data) => `${data.weather}警告，可能影响海上作业安全。`
+        },
+        // 中等降水
+        moderateRain: {
+            codes: [53, 55, 63, 73, 81], // 中度毛毛雨、浓毛毛雨、中雨、中雪、中阵雨
+            level: 'warning',
+            type: '中等降水',
+            getMessage: (data) => `${data.weather}持续中，请做好防护准备。`
+        },
+        // 大风
+        strongWind: {
+            threshold: 40, // 风速超过40km/h
+            level: 'warning',
+            type: '大风',
+            getMessage: (data) => `风速达到${data.wind.toFixed(1)}km/h，请注意海上作业安全。`
+        },
+        // 低能见度
+        lowVisibility: {
+            codes: [45, 48, 56, 57], // 有雾、沉积雾凇、冻毛毛雨、强冻毛毛雨
+            level: 'warning',
+            type: '能见度',
+            getMessage: (data) => `出现${data.weather}，能见度降低，请注意航行安全。`
+        },
+        // 降雪条件
+        snowCondition: {
+            codes: [71, 73, 75, 77, 85, 86], // 各类降雪
+            level: 'warning',
+            type: '降雪',
+            getMessage: (data) => `${data.weather}可能导致路面结冰，请注意安全。`
+        },
+        // 温度异常
+        temperatureAnomaly: {
+            highTemp: 35, // 若要验证警报功能，可以降低highTemp（比如15）
+            lowTemp: -5,
+            level: 'info',
+            type: '温度异常',
+            getMessage: (data) => {
+                if (data.temp > 35) { // 验证警报功能，这里也要进行相应修改
+                    return `高温预警：当前温度${data.temp}°C，请注意防暑降温。`;
+                } else if (data.temp < -5) {
+                    return `低温预警：当前温度${data.temp}°C，请注意防寒保暖。`;
+                }
+                return null;
+            }
+        }
+    };
+
+    // 检测天气异常
+    function detectWeatherAnomalies(weatherData) {
+        const alerts = [];
+        
+        // 检查极端天气
+        if (weatherAlertRules.extremeWeather.codes.includes(weatherData.weatherCode)) {
+            alerts.push({
+                level: weatherAlertRules.extremeWeather.level,
+                type: weatherAlertRules.extremeWeather.type,
+                message: weatherAlertRules.extremeWeather.getMessage({
+                    weather: weatherData.weather,
+                    temp: weatherData.temp,
+                    wind: weatherData.wind
+                }),
+                timestamp: new Date().toISOString()
+            });
+        }
+        
+        // 检查强降水
+        if (weatherAlertRules.heavyRain.codes.includes(weatherData.weatherCode)) {
+            alerts.push({
+                level: weatherAlertRules.heavyRain.level,
+                type: weatherAlertRules.heavyRain.type,
+                message: weatherAlertRules.heavyRain.getMessage({
+                    weather: weatherData.weather,
+                    temp: weatherData.temp,
+                    wind: weatherData.wind
+                }),
+                timestamp: new Date().toISOString()
+            });
+        }
+        
+        // 检查中等降水
+        if (weatherAlertRules.moderateRain.codes.includes(weatherData.weatherCode)) {
+            alerts.push({
+                level: weatherAlertRules.moderateRain.level,
+                type: weatherAlertRules.moderateRain.type,
+                message: weatherAlertRules.moderateRain.getMessage({
+                    weather: weatherData.weather,
+                    temp: weatherData.temp,
+                    wind: weatherData.wind
+                }),
+                timestamp: new Date().toISOString()
+            });
+        }
+        
+        // 检查降雪条件
+        if (weatherAlertRules.snowCondition.codes.includes(weatherData.weatherCode)) {
+            alerts.push({
+                level: weatherAlertRules.snowCondition.level,
+                type: weatherAlertRules.snowCondition.type,
+                message: weatherAlertRules.snowCondition.getMessage({
+                    weather: weatherData.weather,
+                    temp: weatherData.temp,
+                    wind: weatherData.wind
+                }),
+                timestamp: new Date().toISOString()
+            });
+        }
+        
+        // 检查大风
+        if (weatherData.wind > weatherAlertRules.strongWind.threshold) {
+            alerts.push({
+                level: weatherAlertRules.strongWind.level,
+                type: weatherAlertRules.strongWind.type,
+                message: weatherAlertRules.strongWind.getMessage({
+                    weather: weatherData.weather,
+                    temp: weatherData.temp,
+                    wind: weatherData.wind
+                }),
+                timestamp: new Date().toISOString()
+            });
+        }
+        
+        // 检查能见度
+        if (weatherAlertRules.lowVisibility.codes.includes(weatherData.weatherCode)) {
+            alerts.push({
+                level: weatherAlertRules.lowVisibility.level,
+                type: weatherAlertRules.lowVisibility.type,
+                message: weatherAlertRules.lowVisibility.getMessage({
+                    weather: weatherData.weather,
+                    temp: weatherData.temp,
+                    wind: weatherData.wind
+                }),
+                timestamp: new Date().toISOString()
+            });
+        }
+        
+        // 检查温度异常
+        if (weatherData.temp > weatherAlertRules.temperatureAnomaly.highTemp || 
+            weatherData.temp < weatherAlertRules.temperatureAnomaly.lowTemp) {
+            const tempMessage = weatherAlertRules.temperatureAnomaly.getMessage({
+                weather: weatherData.weather,
+                temp: weatherData.temp,
+                wind: weatherData.wind
+            });
+            
+            if (tempMessage) {
+                alerts.push({
+                    level: weatherAlertRules.temperatureAnomaly.level,
+                    type: weatherAlertRules.temperatureAnomaly.type,
+                    message: tempMessage,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        }
+        
+        return alerts;
+    }
+
+    // 更新天气警报
+    async function updateWeatherAlerts(selectedRanchIndex) {
+        const weatherData = Object.values(globalWeatherData);
+        
+        if (selectedRanchIndex !== null && selectedRanchIndex !== '') {
+            const selectedRanch = marineRanches[selectedRanchIndex];
+            const ranchWeather = weatherData.find(w => w.name === selectedRanch.name);
+            
+            if (ranchWeather) {
+                // 检测天气异常
+                const weatherAlerts = detectWeatherAnomalies(ranchWeather);
+                
+                // 获取上一次的警报
+                let previousAlerts = [];
+                try {
+                    previousAlerts = await csvOperations.loadAlertsFromCSV(selectedRanch.name);
+                } catch (error) {
+                    console.error("获取历史警报失败:", error);
+                }
+                
+                // 将天气警报更新到CSV文件
+                const allAlerts = await csvOperations.updateAlertsInCSV(selectedRanch.name, weatherAlerts);
+                
+                // 识别新的警报（当前检测到但不在历史记录中的警报）
+                const newAlerts = weatherAlerts.filter(alert => {
+                    // 检查历史记录中是否已有同类型的警报
+                    return !previousAlerts.some(prevAlert => 
+                        prevAlert.type === alert.type && 
+                        prevAlert.level === alert.level && 
+                        prevAlert.message === alert.message
+                    );
+                });
+                
+                // // 为新的警报显示弹窗
+                // newAlerts.forEach(alert => {
+                //     alertPopupSystem.showAlertPopup(alert);
+                // });
+                alertPopupSystem.showAlerts(newAlerts);
+                
+                // 更新警报数量
+                document.getElementById('alertCount').textContent = `${allAlerts.length}个`;
+                
+                // 更新警报显示
+                const alertsContainer = document.getElementById('alertsContainer');
+                alertsContainer.innerHTML = '';
+                if (allAlerts.length === 0) {
+                    alertsContainer.innerHTML = '<div class="alert alert-success">当前无告警信息，系统运行正常。</div>';
+                } else {
+                    allAlerts.forEach((alert, index) => {
+                        const alertDiv = `
+                            <div class="alert alert-${alert.level}">
+                                <strong>${alert.type}：</strong> ${alert.message}
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">${new Date(alert.timestamp).toLocaleString()}</small>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteAlertHandler('${selectedRanch.name}', ${index})">
+                                        <i class="fas fa-times"></i> 删除
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        alertsContainer.innerHTML += alertDiv;
+                    });
+                }
+                
+                // 更新天气信息显示
+                const waterQualityElement = document.getElementById('waterQuality');
+                waterQualityElement.innerHTML = `${waterQualityElement.textContent} | ${ranchWeather.weatherIcon} ${ranchWeather.weather} ${ranchWeather.temp}°C`;
+            }
+        }
+    }
+
+    // 初始化天气监测
+    async function initWeatherMonitoring() {
+        try {
+            // 获取初始天气数据
+            const weatherData = await fetchMarineRanchWeatherData(marineRanches);
+            
+            // 存储到全局变量
+            weatherData.forEach(data => {
+                globalWeatherData[data.name] = data;
+            });
+
+            console.log('全局天气数据:', globalWeatherData);
+            
+            // 如果有选中的牧场，立即更新警报
+            const selectedIndex = localStorage.getItem('selectedMarineFarm');
+            if (selectedIndex !== null && selectedIndex !== '') {
+                await updateWeatherAlerts(selectedIndex);
+            }
+            
+            // 定期更新天气数据（每10分钟）
+            setInterval(async () => {
+                const newWeatherData = await fetchMarineRanchWeatherData(marineRanches);
+                newWeatherData.forEach(data => {
+                    globalWeatherData[data.name] = data;
+                });
+                
+                // 更新当前选中牧场的警报
+                const currentIndex = document.getElementById('marineFarmSelect').value;
+                if (currentIndex !== '') {
+                    await updateWeatherAlerts(currentIndex);
+                }
+            }, 600000); // 10分钟
+            
+        } catch (error) {
+            console.error('初始化天气监测失败:', error);
+        }
+    }
+
+/*
+    * 页面内容的更新与初始化
+*/
+
+    // 更新页面内容的函数
+    async function updateRanchContent(ranchIndex) {
+        if (ranchIndex === "" || ranchIndex === null) {
+            // 清空内容
+            document.getElementById('ranchNameTitle').textContent = '请选择海洋牧场';
+            document.getElementById('seaArea').textContent = '-';
+            document.getElementById('speciesCount').textContent = '-';
+            document.getElementById('waterQuality').textContent = '-';
+            document.getElementById('alertCount').textContent = '-';
+            document.getElementById('location').textContent = '-';
+            document.getElementById('waterDepth').textContent = '-';
+            document.getElementById('currentStatus').textContent = '-';
+            document.getElementById('establishTime').textContent = '-';
+            document.getElementById('introduction').textContent = '-';
+            document.getElementById('speciesList').innerHTML = '';
+            document.getElementById('alertsContainer').innerHTML = '<p class="text-muted">请选择海洋牧场查看告警信息</p>';
+            return;
+        }
+
+        const data = marineRanchData[ranchIndex];
+        
+        // 更新基本信息
+        document.getElementById('ranchNameTitle').textContent = data.name;
+        document.getElementById('seaArea').textContent = data.seaArea;
+        document.getElementById('speciesCount').textContent = data.speciesCount;
+        document.getElementById('waterQuality').textContent = data.waterQuality;
+        
+        // 更新水域介绍
+        document.getElementById('location').textContent = data.location;
+        document.getElementById('waterDepth').textContent = data.waterDepth;
+        document.getElementById('currentStatus').textContent = data.currentStatus;
+        document.getElementById('establishTime').textContent = data.establishTime;
+        document.getElementById('introduction').textContent = data.introduction;
+        
+        // 更新养殖种类
+        const speciesList = document.getElementById('speciesList');
+        speciesList.innerHTML = '';
+        data.species.forEach(species => {
+            const speciesCard = `
+                <div class="col-md-3 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">${species.name}</h6>
+                            <p class="card-text mb-1"><small>数量：${species.quantity}</small></p>
+                            <p class="card-text mb-0"><small>状态：<span class="text-success">${species.status}</span></small></p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            speciesList.innerHTML += speciesCard;
+        });
+        
+        // 从CSV文件加载警报数据
+        const selectedRanch = marineRanches[ranchIndex];
+        const alerts = await csvOperations.loadAlertsFromCSV(selectedRanch.name);
+        
+        // 更新警报数量
+        document.getElementById('alertCount').textContent = `${alerts.length}个`;
+        
+        // 更新告警信息
+        const alertsContainer = document.getElementById('alertsContainer');
+        alertsContainer.innerHTML = '';
+        if (alerts.length === 0) {
+            alertsContainer.innerHTML = '<div class="alert alert-success">当前无告警信息，系统运行正常。</div>';
+        } else {
+            alerts.forEach((alert, index) => {
+                const alertDiv = `
+                    <div class="alert alert-${alert.level}">
+                        <strong>${alert.type}：</strong> ${alert.message}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">${new Date(alert.timestamp).toLocaleString()}</small>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteAlertHandler('${selectedRanch.name}', ${index})">
+                                <i class="fas fa-times"></i> 删除
+                            </button>
+                        </div>
+                    </div>
+                `;
+                alertsContainer.innerHTML += alertDiv;
+            });
+        }
+    }
+
+    // 在页面加载完成后初始化监测
+    document.addEventListener('DOMContentLoaded', async function() {
+        // 初始化警报文件
+        const ranchNames = marineRanches.map(ranch => ranch.name);
+        await csvOperations.initAlertsFiles(ranchNames);
+        
+        const savedIndex = localStorage.getItem('selectedMarineFarm');
+        if (savedIndex !== null && savedIndex !== '') {
+            await updateRanchContent(savedIndex);
+        }
+        
+        // 初始化天气监测
+        await initWeatherMonitoring();
+        await initWaterQualityMonitoring();
+        // 可补充：初始化其他监测（水质数据、鱼群数据、设备）
+    });
+
+
+    // 监听海洋牧场选择变化
+    window.addEventListener('marineFarmChanged', function(e) {
+        const selectedIndex = document.getElementById('marineFarmSelect').value;
+        alertPopupSystem.clearShownAlerts();
+        updateRanchContent(selectedIndex);
+    });
+</script>
+
+<script>
+    // 在window全局对象上注册删除警报的处理函数
+    window.deleteAlertHandler = async function(ranchName, alertIndex) {
+        // 确认删除
+        if (confirm('确定要删除此警报吗？')) {
+            // 调用API删除警报
+            const updatedAlerts = await csvOperations.deleteAlert(ranchName, alertIndex);
+            
+            if (updatedAlerts) {
+                // 更新当前显示
+                const currentIndex = document.getElementById('marineFarmSelect').value;
+                if (currentIndex !== '') {
+                    await updateRanchContent(currentIndex);
+                }
+            }
+        }
+    };
+</script>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Info</title>
+</head>
+</html>
+{% endblock %}

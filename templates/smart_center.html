@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container-fluid">
+
+        <!-- 海洋牧场分布地图 -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-map-marked-alt me-2"></i>海洋牧场分布地图
+                    </div>
+                    <div class="card-body">
+                        <div id="chinaMap" style="width: 100%; height: 500px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 视频监控与智能问答 -->
+        <div class="row mt-5">
+            <!-- 视频监控 -->
+            <div class="col-md-3"> <!-- 修改为col-md-3 -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-video me-2"></i>实时视频监控
+                    </div>
+                    <div class="card-body" style="height: 500px; overflow-y: auto;">
+                        <div class="col-12" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header bg-dark text-white">
+                                        摄像头 1
+                                    </div>
+                                    <div class="card-body p-0" style="max-height: 180px; overflow: hidden;">
+                                        <video width="100%" height="auto" controls autoplay muted loop>
+                                            <source src="{{ url_for('static', filename='videos/珊瑚鱼群.mp4') }}" type="video/mp4">
+                                            您的浏览器不支持视频标签。
+                                        </video>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header bg-dark text-white">
+                                        摄像头 2
+                                    </div>
+                                    <div class="card-body p-0" style="max-height: 180px; overflow: hidden;">
+                                        <video width="100%" height="auto" controls autoplay muted loop>
+                                            <source src="{{ url_for('static', filename='videos/海底风光.mp4') }}" type="video/mp4">
+                                            您的浏览器不支持视频标签。
+                                        </video>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 智能问答 -->
+            <div class="col-md-9"> <!-- 修改为col-md-9 -->
+                <div class="card" style="height: 530px; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div class="card-header">
+                        智能问答
+                    </div>
+                    <div class="card-body" style="overflow-y: auto; flex-grow: 1;">
+                        <div id="chat" style="overflow-y: auto; height: 66%;"></div>
+                        
+                        <!-- 快捷提问按钮 -->
+                        <div class="d-flex flex-wrap mb-3">
+                            <button class="btn btn-secondary m-1" onclick="setQuestion('有哪些常见的鱼类？')">有哪些常见的鱼类？</button>
+                            <button class="btn btn-secondary m-1" onclick="setQuestion('我国有什么著名的海洋牧场？')">我国有什么著名的海洋牧场？</button>
+                            <button class="btn btn-secondary m-1" onclick="setQuestion('什么样的水温适合鱼类生存？')">什么样的水温适合鱼类生存？</button>
+                        </div>
+
+                        <div style="display: flex; align-items: flex-end; padding: 10px;">
+                            <input type="text" id="user_input" placeholder="请输入你的问题..." style="flex-grow: 1; padding: 10px; margin-right: 10px;"/>
+                            <button onclick="sendMessage()" style="padding: 10px 20px;">发送</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-5">
+        <h2 class="mb-4">图片识别功能</h2>
+        
+        <!-- 图片识别功能 -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-image me-2"></i>上传图片进行识别
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- 左侧图片预览 -->
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="image_upload" class="form-label">选择图片进行识别</label>
+                            <input type="file" id="image_upload" accept="image/*" onchange="handleImageUpload(event)" class="form-control">
+                        </div>
+
+                        <!-- 显示上传的图片 -->
+                        <div id="image_preview" class="mt-4" style="display: none;">
+                            <h5>上传的图片预览:</h5>
+                            <img id="uploaded_image" src="" alt="Uploaded Image" style="max-width: 100%; height: auto;">
+                        </div>
+                    </div>
+                    
+                    <!-- 右侧识别结果 -->
+                    <div class="col-md-6">
+                        <div class="mt-4">
+                            <h5>识别结果:</h5>
+                            <p id="result">请上传图片进行识别。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 监听 ENTER 键按下事件
+        document.getElementById("user_input").addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        });
+
+        function sendMessage() {
+            const userInput = document.getElementById("user_input").value; // 获取用户输入
+            document.getElementById("user_input").value = "";  // 清空输入框
+
+            if (userInput.trim() === "") return;
+
+            // 显示用户输入
+            const chatDiv = document.getElementById("chat");
+            chatDiv.innerHTML += "<p><strong>你:</strong> " + userInput + "</p>";
+            chatDiv.scrollTop = chatDiv.scrollHeight;  // 滚动到最底部
+
+            // 显示“机器人正在思考中……”
+            const thinkingMessage = "<p><strong>机器人:</strong> 正在思考中……</p>";
+            chatDiv.innerHTML += thinkingMessage;
+            chatDiv.scrollTop = chatDiv.scrollHeight;  // 滚动到最底部
+
+            // 调用 API 获取智能问答结果
+            fetch('/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: 'user_input=' + encodeURIComponent(userInput)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 获取机器人的回答
+                const responseText = data.response;
+
+                // 找到并替换“正在思考中……”消息为机器人的实际回答
+                const botResponseElement = chatDiv.querySelector('p:last-child');
+                botResponseElement.innerHTML = "<strong>机器人:</strong> " + "";
+
+                // 逐字输出
+                let i = 0;
+                const interval = setInterval(() => {
+                    botResponseElement.innerHTML += responseText.charAt(i);
+                    chatDiv.scrollTop = chatDiv.scrollHeight;  // 滚动到最底部
+                    i++;
+
+                    // 如果全部文字显示完，清除定时器
+                    if (i >= responseText.length) {
+                        clearInterval(interval);
+                    }
+                }, 50);  // 每50毫秒显示一个字
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        // 设置输入框内容为预设问题
+        function setQuestion(question) {
+            document.getElementById("user_input").value = question;
+            sendMessage();
+        }
+
+        // 用于将图片转换为base64编码
+        function encodeImageToBase64(file) {
+            var reader = new FileReader();
+            reader.onloadend = function() {
+                var base64Image = reader.result.split(',')[1]; // 获取Base64编码部分
+                // 调用后台接口进行图片识别
+                sendImageForRecognition(base64Image);
+                
+                // 显示图片预览
+                var imagePreview = document.getElementById("image_preview");
+                var uploadedImage = document.getElementById("uploaded_image");
+                uploadedImage.src = reader.result;
+                imagePreview.style.display = "block"; // 显示图片预览区域
+            };
+            reader.readAsDataURL(file); // 将图片转为Base64
+        }
+
+        // 调用API接口进行图片识别
+        function sendImageForRecognition(base64Image) {
+            fetch('/recognize_image', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: 'image_data=' + encodeURIComponent(base64Image)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 显示识别结果
+                document.getElementById('result').innerText = "识别结果: " + data.response;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        // 图片上传处理
+        function handleImageUpload(event) {
+            var file = event.target.files[0];
+            if (file) {
+                encodeImageToBase64(file);
+            }
+        }
+    </script>
+{% endblock %}

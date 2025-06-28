@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧海洋牧场可视化系统</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://unpkg.com/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="icon" type="image/png" sizes="32x32"href="{{ url_for('static', filename='images/favicon.png') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Chart.js库 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 引入外部CSS文件 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles_v2.css') }}">
+    <!-- FontAwesome图标库（用于删除按钮的图标） -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        /* css内联，防止css渲染失败 */            
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --ocean-blue: #0077b6;
+            --light-blue: #caf0f8;
+            --dark-blue: #03045e;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            padding-top: 56px; /* 为导航栏留出空间 */
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background-color: var(--ocean-blue);
+        }
+
+        .navbar-brand, .nav-link {
+            color: white !important;
+            font-size: 0.9rem;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .main-content {
+            padding: 20px;
+            flex: 1;
+        }
+
+        .card {
+            margin-bottom: 20px;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            background-color: var(--light-blue);
+            color: var(--dark-blue);
+            font-weight: bold;
+        }
+
+        .legend-color {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+            border-radius: 3px;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: auto !important;
+        }
+
+        .error-message {
+            text-align: center;
+            color: #e74c3c;
+            padding: 20px;
+            background-color: #fadbd8;
+            border-radius: 8px;
+            margin: 20px auto;
+            max-width: 600px;
+        }
+
+        .footer {
+            background-color: var(--dark-blue);
+            color: white;
+            padding: 20px 0;
+            margin-top: auto;
+        }
+
+        /* 海洋牧场选择器样式 */
+        .farm-selector {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .farm-selector label {
+            color: white;
+            font-weight: bold;
+            margin-bottom: 0;
+        }
+
+        .farm-selector select {
+            background-color: white;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            padding: 6px 12px;
+            min-width: 200px;
+        }
+        
+        /* ★ 系统日志区域固定高度 + 滚动条 */
+        .log-scroll{
+            max-height: 320px;   /* 可根据需要调高/低 */
+            overflow-y: auto;    /* 内容超出时出现垂直滚动条 */
+        }
+        
+        /* ★导航行自动缩放字体★  ------------------------- */
+        .nav-auto-fit         { font-size: 16px; }        /* 起始字号 */
+        .nav-auto-fit a       { white-space: nowrap; }    /* 不允许单项换行 */
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 15px;
+            }
+            
+            .farm-selector {
+                margin-top: 10px;
+                width: 100%;
+            }
+            
+            .farm-selector select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('main_info') }}">
+                <i class="fas fa-water me-2"></i>智慧海洋牧场可视化系统
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav nav-auto-fit">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main_info') }}"><i class="fas fa-home me-1"></i>首页</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('water_system') }}"><i class="fas fa-water me-1"></i>水下系统</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('smart_center') }}"><i class="fas fa-brain me-1"></i>智能中心</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('data_center') }}"><i class="fas fa-database me-1"></i>数据中心</a>
+                    </li>
+                    <li class="nav-item">
+                        {% if current_user.is_authenticated and current_user.role == 'admin' %}
+                            <a class="nav-link" href="{{ url_for('admin_ctrl') }}"><i class="fas fa-user-cog me-1"></i> 管理员管理</a>
+                        {% endif %}
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('login') }}"><i class="fas fa-sign-out-alt me-1"></i>退出登录</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="fas fa-user me-1"></i>{{ current_user.username }}，欢迎进入系统！
+                        </a>
+                    </li>
+                </ul>
+                <!-- 海洋牧场选择器 -->
+                <div class="farm-selector">
+                    <label for="marineFarmSelect"><i class="fas fa-map-marker-alt me-1"></i>选择海洋牧场：</label>
+                    <select id="marineFarmSelect" class="form-select">
+                        <option value="all">海洋牧场总览</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <div class="main-content">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="text-center">
+                <p>© 2025 智慧海洋牧场可视化系统 | 软件工程：第三小组 徐亚民 肖胜杰 张铭 张高 潘垠宇</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // 海洋牧场位置数据
+        const marineRanches = [
+            {
+                name: '山东青岛', 
+                value: [120.38, 36.07, 100], 
+                desc: '青岛国家级海洋牧场示范区',
+                province: '山东',
+                city: '青岛',
+                exactLocation: [120.38, 36.07]
+            },
+            {
+                name: '浙江舟山', 
+                value: [122.21, 29.99, 80], 
+                desc: '舟山群岛海洋牧场',
+                province: '浙江',
+                city: '舟山',
+                exactLocation: [122.21, 29.99]
+            },
+            {
+                name: '福建厦门', 
+                value: [118.11, 24.49, 70], 
+                desc: '厦门湾海洋牧场',
+                province: '福建',
+                city: '厦门',
+                exactLocation: [118.11, 24.49]
+            },
+            {
+                name: '广东湛江', 
+                value: [110.36, 21.27, 65], 
+                desc: '湛江海洋牧场',
+                province: '广东',
+                city: '湛江',
+                exactLocation: [110.36, 21.27]
+            },
+            {
+                name: '辽宁大连', 
+                value: [121.62, 38.92, 85], 
+                desc: '大连海洋牧场',
+                province: '辽宁',
+                city: '大连',
+                exactLocation: [121.62, 38.92]
+            },
+            {
+                name: '河北秦皇岛', 
+                value: [119.60, 39.94, 55], 
+                desc: '秦皇岛海洋牧场',
+                province: '河北',
+                city: '秦皇岛',
+                exactLocation: [119.60, 39.94]
+            }
+        ];
+
+        // 初始化海洋牧场选择器
+        function initMarineFarmSelector() {
+            const select = document.getElementById('marineFarmSelect');
+            
+            // 填充选项
+            marineRanches.forEach((ranch, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${ranch.name} - ${ranch.desc}`;
+                select.appendChild(option);
+            });
+            
+            // 从localStorage获取上次选择的牧场
+            const savedFarmIndex = localStorage.getItem('selectedMarineFarm');
+            if (savedFarmIndex !== null && savedFarmIndex !== '') {
+                select.value = savedFarmIndex;
+                handleMarineFarmChange(savedFarmIndex);
+            }
+            
+            // 监听选择变化
+            select.addEventListener('change', function() {
+                const selectedIndex = this.value;
+                if (selectedIndex !== "") {
+                    localStorage.setItem('selectedMarineFarm', selectedIndex);
+                    handleMarineFarmChange(selectedIndex);
+                }
+            });
+        }
+
+        // 处理海洋牧场选择变化
+        function handleMarineFarmChange(index) {
+            const selectedRanch = marineRanches[index];
+            
+            // 触发自定义事件，其他组件可以监听这个事件来更新数据
+            const event = new CustomEvent('marineFarmChanged', { 
+                detail: selectedRanch 
+            });
+            window.dispatchEvent(event);
+            
+            // 如果需要刷新页面或者发送到后端
+            // location.reload(); // 刷新页面
+            // 或者
+            // sendToBackend(selectedRanch); // 发送到后端
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initMarineFarmSelector();
+        });
+
+        // 监听海洋牧场变化事件的示例代码
+        window.addEventListener('marineFarmChanged', function(e) {
+            const ranch = e.detail;
+            // 在这里可以根据选择的牧场更新页面数据
+            // updatePageData(ranch);
+        });
+    </script>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- 引入外部JavaScript文件 -->
+    <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <!-- 加载 Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 加载 ECharts 核心库 -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+
+<script>
+    // 全局变量声明
+    let chinaMap = null;
+    let weatherDataMap = {};
+    let marineRanchWeatherMap = {};
+
+    // 定义省份中心点和省会城市（用于获取天气数据）
+    const provinces = [
+        {name: '北京', value: [116.41, 39.90], fullName: '北京市'},
+        {name: '天津', value: [117.20, 39.13], fullName: '天津市'},
+        {name: '河北', value: [114.48, 38.03], fullName: '河北省'},
+        {name: '山西', value: [112.55, 37.87], fullName: '山西省'},
+        {name: '内蒙古', value: [111.65, 40.82], fullName: '内蒙古自治区'},
+        {name: '辽宁', value: [123.43, 41.80], fullName: '辽宁省'},
+        {name: '吉林', value: [125.32, 43.82], fullName: '吉林省'},
+        {name: '黑龙江', value: [126.63, 45.75], fullName: '黑龙江省'},
+        {name: '上海', value: [121.47, 31.23], fullName: '上海市'},
+        {name: '江苏', value: [118.78, 32.07], fullName: '江苏省'},
+        {name: '浙江', value: [120.19, 30.26], fullName: '浙江省'},
+        {name: '安徽', value: [117.27, 31.86], fullName: '安徽省'},
+        {name: '福建', value: [119.30, 26.08], fullName: '福建省'},
+        {name: '江西', value: [115.89, 28.68], fullName: '江西省'},
+        {name: '山东', value: [117.00, 36.67], fullName: '山东省'},
+        {name: '河南', value: [113.65, 34.76], fullName: '河南省'},
+        {name: '湖北', value: [114.31, 30.59], fullName: '湖北省'},
+        {name: '湖南', value: [113.00, 28.21], fullName: '湖南省'},
+        {name: '广东', value: [113.26, 23.13], fullName: '广东省'},
+        {name: '广西', value: [108.33, 22.84], fullName: '广西壮族自治区'},
+        {name: '海南', value: [110.35, 20.02], fullName: '海南省'},
+        {name: '重庆', value: [106.55, 29.56], fullName: '重庆市'},
+        {name: '四川', value: [104.07, 30.67], fullName: '四川省'},
+        {name: '贵州', value: [106.71, 26.57], fullName: '贵州省'},
+        {name: '云南', value: [102.73, 25.04], fullName: '云南省'},
+        {name: '西藏', value: [91.11, 29.97], fullName: '西藏自治区'},
+        {name: '陕西', value: [108.95, 34.27], fullName: '陕西省'},
+        {name: '甘肃', value: [103.73, 36.03], fullName: '甘肃省'},
+        {name: '青海', value: [101.78, 36.56], fullName: '青海省'},
+        {name: '宁夏', value: [106.27, 38.47], fullName: '宁夏回族自治区'},
+        {name: '新疆', value: [87.62, 43.82], fullName: '新疆维吾尔自治区'},
+        {name: '台湾', value: [121.50, 25.05], fullName: '台湾省'},
+        {name: '香港', value: [114.17, 22.28], fullName: '香港特别行政区'},
+        {name: '澳门', value: [113.54, 22.19], fullName: '澳门特别行政区'}
+    ];
+
+    // 天气代码映射表
+    const weatherCodeMap = {
+        0: { text: '晴朗', icon: '☀️' },
+        1: { text: '大致晴朗', icon: '🌤️' },
+        2: { text: '部分多云', icon: '⛅' },
+        3: { text: '阴天', icon: '☁️' },
+        45: { text: '有雾', icon: '🌫️' },
+        48: { text: '沉积雾凇', icon: '🌫️' },
+        51: { text: '小毛毛雨', icon: '🌦️' },
+        53: { text: '中度毛毛雨', icon: '🌦️' },
+        55: { text: '浓毛毛雨', icon: '🌦️' },
+        56: { text: '冻毛毛雨', icon: '🌦️' },
+        57: { text: '强冻毛毛雨', icon: '🌦️' },
+        61: { text: '小雨', icon: '🌧️' },
+        63: { text: '中雨', icon: '🌧️' },
+        65: { text: '大雨', icon: '🌧️' },
+        66: { text: '冻雨', icon: '🌧️' },
+        67: { text: '强冻雨', icon: '🌧️' },
+        71: { text: '小雪', icon: '❄️' },
+        73: { text: '中雪', icon: '❄️' },
+        75: { text: '大雪', icon: '❄️' },
+        77: { text: '雪粒', icon: '❄️' },
+        80: { text: '小阵雨', icon: '🌧️' },
+        81: { text: '中阵雨', icon: '🌧️' },
+        82: { text: '大阵雨', icon: '🌧️' },
+        85: { text: '小阵雪', icon: '🌨️' },
+        86: { text: '大阵雪', icon: '🌨️' },
+        95: { text: '雷暴', icon: '⛈️' },
+        96: { text: '雷暴伴有小冰雹', icon: '⛈️' },
+        99: { text: '雷暴伴有大冰雹', icon: '⛈️' }
+    };
+
+    // 根据天气代码获取天气文本描述
+    function getWeatherText(code) {
+        return weatherCodeMap[code]?.text || '未知';
+    }
+
+    // 根据天气代码获取天气图标
+    function getWeatherIcon(code) {
+        return weatherCodeMap[code]?.icon || '❓';
+    }
+
+    // 获取海洋牧场天气数据
+    async function fetchMarineRanchWeatherData(marineRanches) {
+        const weatherData = [];
+        
+        // 创建获取天气数据的 Promise 数组
+        const promises = marineRanches.map(ranch => {
+            // 构建 Open-Meteo API URL
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${ranch.exactLocation[1]}&longitude=${ranch.exactLocation[0]}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto`;
+            
+            return fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    // 处理天气代码为可读文本
+                    const weatherText = getWeatherText(data.current.weather_code);
+                    const weatherIcon = getWeatherIcon(data.current.weather_code);
+                    
+                    // 将天气数据添加到海洋牧场数据中
+                    weatherData.push({
+                        name: ranch.name,
+                        province: ranch.province,
+                        city: ranch.city,
+                        desc: ranch.desc,
+                        exactLocation: ranch.exactLocation,
+                        temp: data.current.temperature_2m,
+                        humidity: data.current.relative_humidity_2m,
+                        wind: data.current.wind_speed_10m,
+                        windDirection: data.current.wind_direction_10m,
+                        weather: weatherText,
+                        weatherIcon: weatherIcon,
+                        weatherCode: data.current.weather_code
+                    });
+                });
+        });
+        
+        // 等待所有 Promise 完成
+        await Promise.all(promises);
+        
+        return weatherData;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loadChinaMapData();
+        setupPageLayout();
+    });
+
+    // 设置页面布局，创建地图和天气信息的容器
+    function setupPageLayout() {
+        // 获取原始容器
+        const originalContainer = document.getElementById('chinaMap');
+        if (!originalContainer) return;
+        
+        // 获取父元素
+        const parentElement = originalContainer.parentElement;
+        
+        // 创建新的行容器
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'row';
+        
+        // 创建地图列
+        const mapColDiv = document.createElement('div');
+        mapColDiv.className = 'col-md-8';
+        
+        // 创建天气信息列
+        const weatherColDiv = document.createElement('div');
+        weatherColDiv.className = 'col-md-4';
+        weatherColDiv.id = 'weatherInfoContainer';
+        
+        // 创建新的地图容器
+        const newMapContainer = document.createElement('div');
+        newMapContainer.id = 'chinaMap';
+        newMapContainer.style.width = '100%';
+        newMapContainer.style.height = '500px';
+        
+        // 创建默认的天气信息卡片
+        const defaultWeatherCard = document.createElement('div');
+        defaultWeatherCard.id = 'weatherInfo';
+        defaultWeatherCard.className = 'card';
+        defaultWeatherCard.innerHTML = `
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-cloud me-2"></i>天气信息
+            </div>
+            <div class="card-body text-center">
+                <p class="mb-0">点击地图上的省份或海洋牧场查看天气信息</p>
+                <i class="fas fa-hand-pointer mt-3" style="font-size: 2rem; color: #ccc;"></i>
+            </div>
+        `;
+        
+        // 组装DOM结构
+        mapColDiv.appendChild(newMapContainer);
+        weatherColDiv.appendChild(defaultWeatherCard);
+        rowDiv.appendChild(mapColDiv);
+        rowDiv.appendChild(weatherColDiv);
+        
+        // 替换原容器
+        parentElement.replaceChild(rowDiv, originalContainer);
+    }
+
+    // 加载中国地图数据并初始化地图
+    function loadChinaMapData() {
+        // 等待DOM更新后再获取地图容器
+        setTimeout(() => {
+            // 获取地图容器
+            const mapContainer = document.getElementById('chinaMap');
+            if (!mapContainer) {
+                console.error('地图容器不存在');
+                return;
+            }
+            
+            // 初始化 ECharts 实例
+            chinaMap = echarts.init(mapContainer);
+            
+            // 显示加载动画
+            chinaMap.showLoading();
+            
+            // 加载中国地图数据
+            fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
+                .then(response => response.json())
+                .then(chinaJson => {
+                    // 注册地图数据
+                    echarts.registerMap('China', chinaJson);
+                    
+                    // 获取省份天气数据
+                    fetchWeatherData(provinces)
+                        .then(weatherData => {
+                            // 将天气数据转换为映射表以便快速查找
+                            weatherData.forEach(item => {
+                                weatherDataMap[item.name] = item;
+                            });
+                            
+                            // 获取海洋牧场天气数据
+                            fetchMarineRanchWeatherData(marineRanches)
+                                .then(marineWeatherData => {
+                                    // 隐藏加载动画
+                                    chinaMap.hideLoading();
+                                    
+                                    // 将海洋牧场天气数据转换为映射表
+                                    marineWeatherData.forEach(item => {
+                                        marineRanchWeatherMap[item.name] = item;
+                                    });
+                                    
+                                    // 创建区域颜色设置
+                                    const regions = createRegionColors(provinces, weatherDataMap);
+                                    
+                                    // 创建初始地图选项
+                                    const option = createMapOption(weatherDataMap, marineRanches, regions);
+                                    
+                                    // 设置配置项并渲染地图
+                                    chinaMap.setOption(option);
+                                    
+                                    // 添加点击事件
+                                    chinaMap.on('click', function(params) {
+                                        if (params.componentType === 'geo' && params.name) {
+                                            // 找到对应的省份
+                                            const province = provinces.find(p => 
+                                                p.fullName.includes(params.name) || 
+                                                params.name.includes(p.name)
+                                            );
+                                            
+                                            if (province && weatherDataMap[province.name]) {
+                                                showProvinceWeather(params.name, weatherDataMap[province.name]);
+                                            } else {
+                                                console.log('没有找到该省份的天气数据');
+                                            }
+                                        } else if (params.seriesType === 'effectScatter' && params.name) {
+                                            // 点击了海洋牧场
+                                            const marineRanchName = params.name;
+                                            if (marineRanchWeatherMap[marineRanchName]) {
+                                                showMarineRanchWeather(marineRanchName, marineRanchWeatherMap[marineRanchName]);
+                                            } else {
+                                                console.log('没有找到该海洋牧场的天气数据');
+                                            }
+                                        }
+                                    });
+                                    
+                                    // 窗口大小变化时自动调整地图大小
+                                    window.addEventListener('resize', function() {
+                                        chinaMap.resize();
+                                    });
+                                })
+                                .catch(error => {
+                                    console.error('获取海洋牧场天气数据失败:', error);
+                                    chinaMap.hideLoading();
+                                    showError(mapContainer, '获取海洋牧场天气数据失败，请检查网络连接或刷新页面重试。');
+                                });
+                        })
+                        .catch(error => {
+                            console.error('获取天气数据失败:', error);
+                            chinaMap.hideLoading();
+                            showError(mapContainer, '获取天气数据失败，请检查网络连接或刷新页面重试。');
+                        });
+                })
+                .catch(error => {
+                    console.error('加载中国地图数据失败:', error);
+                    chinaMap.hideLoading();
+                    showError(mapContainer, '无法加载中国地图数据，请检查网络连接或刷新页面重试。');
+                });
+        }, 100);
+    }
+
+    // 创建区域颜色配置
+    function createRegionColors(provinces, weatherDataMap) {
+        const regions = [];
+        
+        // 为每个省份创建一个区域颜色配置
+        provinces.forEach(province => {
+            // 查找对应的天气数据
+            const weatherData = weatherDataMap[province.name];
+            
+            if (weatherData) {
+                // 根据温度设置颜色
+                const temp = weatherData.temp;
+                // 温度范围从0到40度，对应颜色从蓝到红
+                const normalizedTemp = Math.min(Math.max(temp, 0), 40) / 40;
+                
+                // 计算RGB颜色值
+                const r = Math.floor(135 + 120 * normalizedTemp); // 从135到255
+                const g = Math.floor(206 - 137 * normalizedTemp); // 从206到69
+                const b = Math.floor(250 - 180 * normalizedTemp); // 从250到70
+                
+                // 添加区域配置
+                regions.push({
+                    name: province.fullName,
+                    itemStyle: {
+                        areaColor: `rgb(${r},${g},${b})`
+                    }
+                });
+            }
+        });
+        
+        return regions;
+    }
+
+    // 显示省份天气的函数
+    function showProvinceWeather(provinceName, weatherData) {
+        // 获取天气信息容器
+        const weatherInfoContainer = document.getElementById('weatherInfoContainer');
+        if (!weatherInfoContainer) return;
+        
+        // 更新天气信息内容
+        const weatherInfo = document.getElementById('weatherInfo');
+        if (weatherInfo) {
+            weatherInfo.innerHTML = `
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-cloud me-2"></i>${provinceName}天气信息
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <span class="display-1">${weatherData.weatherIcon}</span>
+                        <h2 class="mt-2 mb-0">${weatherData.temp}°C</h2>
+                        <h5 class="text-muted">${weatherData.weather}</h5>
+                    </div>
+                    <hr>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <i class="fas fa-tint me-2 text-primary"></i>
+                                <span class="fw-bold">湿度</span>
+                            </div>
+                            <span>${weatherData.humidity}%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: ${weatherData.humidity}%" 
+                                aria-valuenow="${weatherData.humidity}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <i class="fas fa-wind me-2 text-secondary"></i>
+                                <span class="fw-bold">风速</span>
+                            </div>
+                            <span>${weatherData.wind} km/h</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-secondary" role="progressbar" style="width: ${Math.min(weatherData.wind * 5, 100)}%" 
+                                aria-valuenow="${weatherData.wind}" aria-valuemin="0" aria-valuemax="20"></div>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-center small text-muted">
+                        更新时间: ${new Date().toLocaleString()}<br>
+                        数据来源: Open-Meteo API
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    // 显示海洋牧场天气信息
+    function showMarineRanchWeather(ranchName, weatherData) {
+        // 获取天气信息容器
+        const weatherInfoContainer = document.getElementById('weatherInfoContainer');
+        if (!weatherInfoContainer) return;
+        
+        // 获取风向文本描述
+        const windDirectionText = getWindDirectionText(weatherData.windDirection);
+        
+        // 更新天气信息内容
+        const weatherInfo = document.getElementById('weatherInfo');
+        if (weatherInfo) {
+            weatherInfo.innerHTML = `
+                <div class="card-header bg-info text-white">
+                    <i class="fas fa-water me-2"></i>${ranchName}海洋牧场
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <span class="display-1">${weatherData.weatherIcon}</span>
+                        <h2 class="mt-2 mb-0">${weatherData.temp}°C</h2>
+                        <h5 class="text-muted">${weatherData.weather}</h5>
+                        <p class="badge bg-secondary mt-2">${weatherData.desc}</p>
+                    </div>
+                    <hr>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <i class="fas fa-tint me-2 text-primary"></i>
+                                <span class="fw-bold">湿度</span>
+                            </div>
+                            <span>${weatherData.humidity}%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: ${weatherData.humidity}%" 
+                                aria-valuenow="${weatherData.humidity}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <i class="fas fa-wind me-2 text-secondary"></i>
+                                <span class="fw-bold">风速</span>
+                            </div>
+                            <span>${weatherData.wind} km/h</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-secondary" role="progressbar" style="width: ${Math.min(weatherData.wind * 5, 100)}%" 
+                                aria-valuenow="${weatherData.wind}" aria-valuemin="0" aria-valuemax="20"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <i class="fas fa-compass me-2 text-info"></i>
+                                <span class="fw-bold">风向</span>
+                            </div>
+                            <span>${windDirectionText} (${weatherData.windDirection}°)</span>
+                        </div>
+                        <div class="text-center mt-2">
+                            <div class="direction-indicator" style="
+                                display: inline-block;
+                                width: 30px;
+                                height: 30px;
+                                border: 2px solid #17a2b8;
+                                border-radius: 50%;
+                                position: relative;
+                            ">
+                                <div style="
+                                    position: absolute;
+                                    top: 50%;
+                                    left: 50%;
+                                    width: 0;
+                                    height: 0;
+                                    border-left: 10px solid transparent;
+                                    border-right: 10px solid transparent;
+                                    border-bottom: 20px solid #17a2b8;
+                                    transform: translate(-50%, -50%) rotate(${weatherData.windDirection}deg);
+                                    transform-origin: center;
+                                "></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3 small">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <i class="fas fa-map-marker-alt me-1 text-danger"></i>
+                                <span>位置</span>
+                            </div>
+                            <span>${weatherData.city}, ${weatherData.province}</span>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-center small text-muted">
+                        更新时间: ${new Date().toLocaleString()}<br>
+                        数据来源: Open-Meteo API
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    // 获取风向文字描述
+    function getWindDirectionText(degrees) {
+        const directions = [
+            '北风', '北偏东风', '东北风', '东偏北风',
+            '东风', '东偏南风', '东南风', '南偏东风',
+            '南风', '南偏西风', '西南风', '西偏南风',
+            '西风', '西偏北风', '西北风', '北偏西风'
+        ];
+        
+        // 将角度转换为16方位索引 (0-15)
+        const index = Math.round(degrees / 22.5) % 16;
+        return directions[index];
+    }
+
+    // 异步获取天气数据
+    async function fetchWeatherData(provinces) {
+        const weatherData = [];
+        
+        // 创建获取天气数据的 Promise 数组
+        const promises = provinces.map(province => {
+            // 构建 Open-Meteo API URL
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${province.value[1]}&longitude=${province.value[0]}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`;
+            
+            return fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    // 处理天气代码为可读文本
+                    const weatherText = getWeatherText(data.current.weather_code);
+                    const weatherIcon = getWeatherIcon(data.current.weather_code);
+                    
+                    // 将天气数据添加到省份数据中
+                    weatherData.push({
+                        name: province.name,
+                        fullName: province.fullName,
+                        value: province.value,
+                        temp: data.current.temperature_2m,
+                        humidity: data.current.relative_humidity_2m,
+                        wind: data.current.wind_speed_10m,
+                        weather: weatherText,
+                        weatherIcon: weatherIcon,
+                        weatherCode: data.current.weather_code
+                    });
+                });
+        });
+        
+        // 等待所有 Promise 完成
+        await Promise.all(promises);
+        
+        return weatherData;
+    }
+
+    // 创建地图配置选项
+    function createMapOption(weatherDataMap, marineRanches, regions, selectedRanchIndex = null) {
+        const selectedIndex = selectedRanchIndex !== null ? parseInt(selectedRanchIndex) : null;
+        
+        // 创建海洋牧场数据点
+        const scatterData = marineRanches.map((ranch, index) => {
+            // 明确标记当前牧场是否被选中
+            const isSelected = selectedIndex === index;
+            
+            return {
+                name: ranch.name,
+                value: ranch.exactLocation.concat(ranch.scale || 50), // 确保第三个值存在（用于大小）
+                province: ranch.province,
+                desc: ranch.description || '',
+                isSelected: isSelected, // 添加选中标记
+                // 直接设置label属性
+                label: {
+                    show: isSelected, // 直接根据是否选中决定是否显示标签
+                    position: 'right',
+                    formatter: '{b}',
+                    fontSize: 14,
+                    fontWeight: 'bold',
+                    color: '#ff6600'
+                },
+                itemStyle: {
+                    // 直接在数据中设置样式，而不是在回调中
+                    color: isSelected ? '#ff6600' : '#00a6a6',
+                    shadowBlur: isSelected ? 20 : 10,
+                    shadowColor: isSelected ? '#ff6600' : '#333'
+                },
+                // 如果有其他属性，保留
+                ...ranch
+            };
+        });
+
+        return {
+            title: {
+                text: '中国海洋牧场分布与天气概况',
+                subtext: `数据时间: ${new Date().toLocaleString()}`,
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: function(params) {
+                    if (params.seriesType === 'effectScatter') {
+                        // 海洋牧场数据格式
+                        const marineRanchName = params.name;
+                        // 获取对应的天气数据
+                        const weatherInfo = weatherDataMap[params.data.province];
+                        
+                        if (weatherInfo) {
+                            return `
+                                <div style="text-align:center;font-weight:bold;margin-bottom:5px;">${marineRanchName}</div>
+                                <div>${params.data.desc}</div>
+                                <hr style="margin:5px 0">
+                                <div style="display:flex;align-items:center;margin-bottom:3px;">
+                                    <span>${weatherInfo.weatherIcon}</span>
+                                    <span style="margin-left:5px;">${weatherInfo.weather}</span>
+                                </div>
+                                <div>温度: ${weatherInfo.temp}°C</div>
+                                <div>规模指数:${params.value[2]}</div>
+                                <div style="font-style:italic;margin-top:5px;font-size:0.8em;">点击查看精确天气信息</div>
+                            `;
+                        } else {
+                            return `${params.name}<br/>规模指数: ${params.value[2]}<br/>${params.data.desc}`;
+                        }
+                    } else if (params.componentType === 'geo') {
+                        // 省份格式
+                        const provinceName = params.name;
+                        // 找到对应的简称
+                        const provinceShortName = Object.keys(weatherDataMap).find(name => 
+                            weatherDataMap[name].fullName === provinceName || 
+                            provinceName.includes(name)
+                        );
+                        
+                        if (provinceShortName && weatherDataMap[provinceShortName]) {
+                            const data = weatherDataMap[provinceShortName];
+                            return `
+                                <div style="text-align:center;font-weight:bold;margin-bottom:5px;">${provinceName}</div>
+                                <div style="display:flex;align-items:center;margin-bottom:3px;">
+                                    <span>${data.weatherIcon}</span>
+                                    <span style="margin-left:5px;">${data.weather}</span>
+                                </div>
+                                <div>温度: ${data.temp}°C</div>
+                                <div>湿度: ${data.humidity}%</div>
+                                <div>风速: ${data.wind} km/h</div>
+                                <div style="font-style:italic;margin-top:5px;font-size:0.8em;">点击查看详情</div>
+                            `;
+                        } else {
+                            return provinceName;
+                        }
+                    }
+                }
+            },
+            visualMap: {
+                show: true,
+                min: 0,
+                max: 40, // 温度范围，可以根据实际数据调整
+                text: ['高温', '低温'],
+                realtime: false,
+                calculable: true,
+                inRange: {
+                    color: ['#87CEFA', '#FF4500'] // 从蓝色(冷)到红色(热)
+                },
+                left: 'left',
+                seriesIndex: [],
+                dimension: 0
+            },
+            geo: {
+                map: 'China',
+                roam: true, // 允许缩放和平移
+                scaleLimit: {
+                    min: 1,
+                    max: 10
+                },
+                center: [104.5, 38], // 中国地理中心点
+                zoom: 1.2, // 初始缩放级别
+                label: {
+                    show: false
+                },
+                emphasis: {
+                    label: {
+                        show: true
+                    },
+                    itemStyle: {
+                        areaColor: '#e6f7ff'
+                    }
+                },
+                itemStyle: {
+                    areaColor: '#f3f3f3', // 默认颜色
+                    borderColor: '#ccc',
+                    borderWidth: 1
+                },
+                regions: regions // 添加区域特定的样式设置
+            },
+            series: [{
+                name: '海洋牧场',
+                type: 'effectScatter',
+                coordinateSystem: 'geo',
+                data: scatterData,
+                symbolSize: function (val) {
+                    return val[2] / 10;
+                },
+                showEffectOn: 'render',
+                rippleEffect: {
+                    brushType: 'stroke',
+                    scale: 3,
+                    period: 4
+                },
+                hoverAnimation: true,
+                itemStyle: {
+                    // 不要在这里使用回调函数，而是在数据中直接设置样式
+                    shadowBlur: 10,
+                    shadowColor: '#333'
+                },
+                emphasis: {
+                    label: {
+                        show: false
+                    },
+                    itemStyle: {
+                        // 鼠标悬停时的样式
+                        shadowBlur: 20
+                    }
+                },
+                zlevel: 1
+            }]
+        };
+    }
+
+    // 监听海洋牧场选择变化并更新地图
+    window.addEventListener('marineFarmChanged', function(e) {
+        const selectedIndex = e.detail?.selectedIndex || document.getElementById('marineFarmSelect').value;
+        const regions = createRegionColors(provinces, weatherDataMap);
+
+        console.log(selectedIndex);
+        
+        // 重新创建地图配置
+        const newOption = createMapOption(weatherDataMap, marineRanches, regions, selectedIndex);
+        
+        // 更新图表
+        if (chinaMap) {
+            chinaMap.setOption(newOption);
+            // 如果选中了某个牧场，自动缩放到该位置
+            if (selectedIndex !== 0) {
+                const selectedRanch = marineRanches[selectedIndex];
+                if (selectedRanch && selectedRanch.exactLocation) {
+                    chinaMap.setOption({
+                        geo: {
+                            center: selectedRanch.exactLocation,
+                            zoom: 5 // 放大到合适的级别
+                        }
+                    });
+                }
+            } else {
+                // 如果是"所有海洋牧场"选项，重置视图
+                chinaMap.setOption({
+                    geo: {
+                        center: [104.5, 38],
+                        zoom: 1.2
+                    }
+                });
+            }
+        }
+    });
+
+    // 显示错误信息
+    function showError(container, message) {
+        container.innerHTML = `
+            <div class="alert alert-danger">
+                <strong>错误</strong><br>
+                ${message}
+            </div>
+        `;
+    }
+
+    // 初始化设备状态图表
+    function initDeviceStatusChart() {
+        const deviceStatusElement = document.getElementById('deviceStatusChart');
+        if (deviceStatusElement) {
+            const deviceStatusCtx = deviceStatusElement.getContext('2d');
+            const deviceStatusChart = new Chart(deviceStatusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['正常运行', '需要维护', '故障', '离线'],
+                    datasets: [{
+                        data: [75, 15, 5, 5],
+                        backgroundColor: [
+                            '#4caf50', // 绿色：正常运行
+                            '#ff9800', // 橙色：需要维护
+                            '#f44336', // 红色：故障
+                            '#9e9e9e'  // 灰色：离线
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        title: {
+                            display: true,
+                            text: '设备运行状态分布'
+                        }
+                    }
+                }
+            });
+        } else {
+            console.warn("未找到设备状态图表元素");
+        }
+    }
+
+    (function () {
+    const MIN_SIZE = 12;    // 允许缩到的最小字号（px）
+    const STEP     = 1;     // 每次递减步长
+
+    const nav     = document.querySelector('.nav-auto-fit');
+    if (!nav) return;       // 页面没有该导航直接返回
+
+    function shrinkToFit () {
+        /* 还原到起始字号再开始检测 */
+        const start = parseFloat(getComputedStyle(nav).fontSize);
+        let size    = start;
+
+        nav.style.fontSize = start + 'px';
+
+        /* 只要超宽且还能变小，就循环缩小字号 */
+        while (nav.scrollWidth > nav.clientWidth && size > MIN_SIZE) {
+            size -= STEP;
+            nav.style.fontSize = size + 'px';
+        }
+    }
+
+    /* 初次渲染、窗口变动时都执行一次 */
+    window.addEventListener('load',   shrinkToFit);
+    window.addEventListener('resize', shrinkToFit);
+})();
+</script>
+</body>
+</html>

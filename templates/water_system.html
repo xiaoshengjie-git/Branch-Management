@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container-fluid">
+        <div class="d-flex justify-content-end mb-2">
+            <div class="dropdown">
+                <button class="btn btn-secondary dropdown-toggle" type="button" id="dataManageMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-database me-1"></i> 数据管理
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="dataManageMenu">
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#uploadWaterModal">
+                        <i class="fas fa-cloud-upload-alt me-2"></i>上传水质监测数据
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#exportWaterModal">
+                        <i class="fas fa-arrow-down me-2"></i>导出水质检测数据
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" id="downloadSectionChartBtn">
+                        <i class="fas fa-image me-2"></i>下载断面趋势图
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- 上传水质数据模态框 -->
+        <div class="modal fade" id="uploadWaterModal" tabindex="-1" aria-labelledby="uploadWaterModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="uploadWaterModalLabel">上传水质监测数据</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <form id="waterUploadForm">
+                  <div class="mb-3">
+                    <label class="form-label">选择省份</label>
+                    <select class="form-select" id="uploadProvinceSelect"></select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">选择流域</label>
+                    <select class="form-select" id="uploadBasinSelect"></select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">选择断面</label>
+                    <select class="form-select" id="uploadSectionSelect"></select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">上传CSV文件</label>
+                    <div id="waterDropZone" class="border border-primary rounded p-3 text-center" style="cursor:pointer;background:#f8f9fa;">
+                      <span id="waterDropText">拖拽或点击选择CSV文件</span>
+                      <input type="file" id="waterFileInput" accept=".csv" style="display:none;">
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <div id="waterUploadProgress" class="progress" style="height: 20px; display:none;">
+                      <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" id="waterUploadBar">0%</div>
+                    </div>
+                    <div id="waterUploadStatus" class="small text-muted mt-1"></div>
+                  </div>
+                  <div class="mb-3 text-end" id="waterTemplateBtnBox">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="downloadWaterTemplateBtn">
+                      <i class="fas fa-file-csv me-1"></i>下载CSV模板
+                    </button>
+                  </div>
+                  <button type="button" class="btn btn-primary w-100" id="startWaterUploadBtn">开始上传</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 导出水质数据模态框 -->
+        <div class="modal fade" id="exportWaterModal" tabindex="-1" aria-labelledby="exportWaterModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="exportWaterModalLabel">导出水质监测数据</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <form id="waterExportForm">
+                  <div class="mb-3">
+                    <label class="form-label">选择省份</label>
+                    <select class="form-select" id="exportProvinceSelect"></select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">选择流域</label>
+                    <select class="form-select" id="exportBasinSelect"></select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">选择断面</label>
+                    <select class="form-select" id="exportSectionSelect"></select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">导出格式</label>
+                    <select class="form-select" id="waterExportFormat">
+                      <option value="csv">CSV</option>
+                      <option value="xlsx">Excel</option>
+                    </select>
+                  </div>
+                  <div class="mb-3">
+                    <div id="waterExportProgress" class="progress" style="height: 20px; display:none;">
+                      <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" id="waterExportBar">0%</div>
+                    </div>
+                    <div id="waterExportStatus" class="small text-muted mt-1"></div>
+                  </div>
+                  <button type="button" class="btn btn-success w-100" id="startWaterExportBtn">开始导出</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <h1 class="mb-4">水下系统信息展示</h1>
+        
+        <!-- 系统状态卡片 -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-white bg-primary">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-check-circle me-2"></i>系统状态</h5>
+                        <p class="card-text">正常运行中</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-info">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-video me-2"></i>摄像头数量</h5>
+                        <p class="card-text">8个</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-success">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-water me-2"></i>水质传感器</h5>
+                        <p class="card-text">12个</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-warning">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-exclamation-triangle me-2"></i>告警数量</h5>
+                        <p class="card-text">2个</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 水质地图与时序分析区域 -->
+        <div class="row mb-4">
+            <div class="col-lg-8 mb-3">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-globe-asia me-2"></i>全国/省/流域/断面水质分层地图
+                    </div>
+                    <div class="card-body" style="height: 600px;">
+                        <div id="waterQualityMap" style="width: 100%; height: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 mb-3">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <i class="fas fa-sliders-h me-2"></i>筛选条件
+                    </div>
+                    <div class="card-body">
+                        <form id="waterQualityFilterForm">
+                            <div class="mb-2">
+                                <label for="provinceSelect" class="form-label">省份</label>
+                                <select class="form-select" id="provinceSelect"></select>
+                            </div>
+                            <div class="mb-2">
+                                <label for="basinSelect" class="form-label">流域</label>
+                                <select class="form-select" id="basinSelect"></select>
+                            </div>
+                            <div class="mb-2">
+                                <label for="sectionSelect" class="form-label">断面</label>
+                                <select class="form-select" id="sectionSelect"></select>
+                            </div>
+                            <div class="mb-2">
+                                <label for="indicatorSelect" class="form-label">指标</label>
+                                <select class="form-select" id="indicatorSelect" multiple>
+                                    <option value="水温(℃)">水温(℃)</option>
+                                    <option value="pH(无量纲)">pH(无量纲)</option>
+                                    <option value="溶解氧(mg/L)">溶解氧(mg/L)</option>
+                                    <option value="电导率(μS/cm)">电导率(μS/cm)</option>
+                                    <option value="浊度(NTU)">浊度(NTU)</option>
+                                    <option value="高锰酸盐指数(mg/L)">高锰酸盐指数(mg/L)</option>
+                                    <option value="氨氮(mg/L)">氨氮(mg/L)</option>
+                                    <option value="总磷(mg/L)">总磷(mg/L)</option>
+                                    <option value="总氮(mg/L)">总氮(mg/L)</option>
+                                    <option value="叶绿素α(mg/L)">叶绿素α(mg/L)</option>
+                                    <option value="藻密度(cells/L)">藻密度(cells/L)</option>
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <label for="dateRange" class="form-label">时间范围</label>
+                                <input type="text" class="form-control" id="dateRange" placeholder="如 04-01 ~ 04-29">
+                            </div>
+                            <button type="button" class="btn btn-primary w-100" id="applyFilterBtn">应用筛选</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-4">
+          <!-- 断面时序指标趋势 -->
+          <div class="col-md-6">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                  <span><i class="fas fa-chart-line me-2"></i>断面时序指标趋势</span>
+                  <button class="btn btn-sm btn-outline-secondary" id="downloadTrendChartBtn" title="下载图表"><i class="fas fa-download"></i></button>
+              </div>
+              <div class="card-body" style="height: 300px;">
+                  <div id="sectionTrendChart" style="width: 100%; height: 100%;"></div>
+              </div>
+          </div>
+          <!-- 实时视频监控 -->
+          <div class="col-md-6">
+              <div class="card">
+                  <div class="card-header">
+                      <i class="fas fa-video me-2"></i>实时视频监控
+                  </div>
+                  <div class="card-body">
+                      <div class="row">
+                          <div class="col-md-6">
+                              <div class="card mb-3">
+                                  <div class="card-header bg-dark text-white">
+                                      摄像头 1
+                                  </div>
+                                  <div class="card-body p-0">
+                                      <video width="100%" height="auto" controls autoplay muted loop>
+                                          <source src="{{ url_for('static', filename='videos/珊瑚鱼群.mp4') }}" type="video/mp4">
+                                          您的浏览器不支持视频标签。
+                                      </video>
+                                  </div>
+                              </div>
+                          </div>
+                          <div class="col-md-6">
+                              <div class="card mb-3">
+                                  <div class="card-header bg-dark text-white">
+                                      摄像头 2
+                                  </div>
+                                  <div class="card-body p-0">
+                                      <video width="100%" height="auto" controls autoplay muted loop>
+                                          <source src="{{ url_for('static', filename='videos/海底风光.mp4') }}" type="video/mp4">
+                                          您的浏览器不支持视频标签。
+                                      </video>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+        </div>
+    </div>
+{% endblock %}

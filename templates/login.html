@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智慧海洋牧场 · 登录</title>
+
+  <!-- ===== 1. 基础与主题色 ===== -->
+  <style>
+    :root{
+      --ocean-deep: #034487;
+      --ocean-start: #0356a8;      /* 深海蓝 */
+      --ocean-mid: #0487d9;        /* 中间蓝 */
+      --ocean-end: #76d7ff;        /* 浅海青 */
+      --accent: #00e5ff;           /* 强调色 */
+      --primary: #0d6efd;
+      --primary-hover: #0b5ed7;
+      --shadow: rgba(0, 46, 130, 0.15);
+      --radius: 16px;
+      --transition: all 0.3s ease;
+    }
+    *{
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    }
+    body{
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--ocean-deep) 0%, var(--ocean-start) 25%, var(--ocean-mid) 60%, var(--ocean-end) 100%);
+      overflow: hidden;
+      padding: 20px;
+    }
+  </style>
+
+  <!-- ===== 2. 多层动态波浪 ===== -->
+  <style>
+    .ocean-animation {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    
+    .wave {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 200%;
+      height: 100px;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" fill="rgba(255,255,255,0.15)"/></svg>') repeat-x;
+      background-size: 1200px 100px;
+      animation: wave-animation 20s linear infinite;
+    }
+    
+    .wave-2 {
+      bottom: -25px;
+      animation: wave-animation 16s linear infinite;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" fill="rgba(255,255,255,0.1)"/></svg>') repeat-x;
+    }
+    
+    .wave-3 {
+      bottom: -50px;
+      animation: wave-animation 13s linear infinite;
+      animation-delay: -5s;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" fill="rgba(255,255,255,0.05)"/></svg>') repeat-x;
+    }
+    
+    @keyframes wave-animation {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    
+    .bubbles {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: -1;
+    }
+    
+    .bubble {
+      position: absolute;
+      bottom: -100px;
+      width: 40px;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      opacity: 0.5;
+      animation: rise 15s infinite ease-in;
+    }
+    
+    .bubble:nth-child(1) {
+      width: 20px;
+      height: 20px;
+      left: 10%;
+      animation-duration: 12s;
+    }
+    
+    .bubble:nth-child(2) {
+      width: 15px;
+      height: 15px;
+      left: 20%;
+      animation-duration: 18s;
+      animation-delay: 1s;
+    }
+    
+    .bubble:nth-child(3) {
+      width: 30px;
+      height: 30px;
+      left: 35%;
+      animation-duration: 14s;
+      animation-delay: 2s;
+    }
+    
+    .bubble:nth-child(4) {
+      width: 25px;
+      height: 25px;
+      left: 50%;
+      animation-duration: 16s;
+      animation-delay: 0s;
+    }
+    
+    .bubble:nth-child(5) {
+      width: 18px;
+      height: 18px;
+      left: 65%;
+      animation-duration: 12s;
+      animation-delay: 3s;
+    }
+    
+    .bubble:nth-child(6) {
+      width: 22px;
+      height: 22px;
+      left: 80%;
+      animation-duration: 15s;
+      animation-delay: 1s;
+    }
+    
+    .bubble:nth-child(7) {
+      width: 27px;
+      height: 27px;
+      left: 95%;
+      animation-duration: 17s;
+      animation-delay: 2.5s;
+    }
+    
+    @keyframes rise {
+      0% {
+        bottom: -100px;
+        transform: translateX(0);
+      }
+      50% {
+        transform: translateX(100px);
+      }
+      100% {
+        bottom: 100vh;
+        transform: translateX(-200px);
+      }
+    }
+  </style>
+
+  <!-- ===== 3. 登录卡片（高级毛玻璃效果） ===== -->
+  <style>
+    .card-container {
+      perspective: 2000px;
+      width: clamp(300px, 90vw, 420px);
+    }
+    
+    .card {
+      width: 100%;
+      padding: 2.5rem;
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      box-shadow: 
+        0 15px 35px var(--shadow),
+        0 5px 15px rgba(0, 0, 0, 0.05),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+      position: relative;
+      z-index: 10;
+      transition: var(--transition);
+      transform-style: preserve-3d;
+      overflow: hidden;
+    }
+    
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 
+        0 20px 40px var(--shadow),
+        0 8px 20px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+    }
+    
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.15), transparent 50%);
+      z-index: -1;
+    }
+    
+    .card::after {
+      content: '';
+      position: absolute;
+      width: 150%;
+      height: 150%;
+      top: -25%;
+      left: -25%;
+      background: linear-gradient(
+        217deg, 
+        rgba(255, 255, 255, 0) 0%, 
+        rgba(255, 255, 255, 0.05) 45%, 
+        rgba(255, 255, 255, 0.1) 50%, 
+        rgba(255, 255, 255, 0.05) 55%, 
+        rgba(255, 255, 255, 0) 100%
+      );
+      transform: rotate(15deg);
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    .logo-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .logo {
+      width: 80px;
+      height: 80px;
+      background: conic-gradient(from -45deg at 50% 50%, 
+        #00b8ff 0%, 
+        #0095ff 25%, 
+        #0072ff 50%, 
+        #0056ff 75%, 
+        #00e5ff 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.5rem;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+      box-shadow: 
+        0 8px 20px rgba(0, 0, 0, 0.1),
+        0 4px 12px rgba(0, 66, 255, 0.15),
+        0 0 0 6px rgba(255, 255, 255, 0.05);
+      position: relative;
+      overflow: hidden;
+      z-index: 2;
+      transition: var(--transition);
+    }
+    
+    .logo:hover {
+      transform: scale(1.05) rotate(5deg);
+      box-shadow: 
+        0 10px 25px rgba(0, 0, 0, 0.15),
+        0 6px 15px rgba(0, 66, 255, 0.2),
+        0 0 0 8px rgba(255, 255, 255, 0.08);
+    }
+    
+    .logo::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      transform: rotate(45deg);
+      animation: shine 6s infinite;
+    }
+    
+    @keyframes shine {
+      0% { transform: rotate(45deg) translateX(-100%); }
+      20%, 100% { transform: rotate(45deg) translateX(100%); }
+    }
+    
+    h2 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 1.8rem;
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      letter-spacing: 0.5px;
+    }
+
+    .form-group {
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 1rem 1.2rem;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      color: #333;
+      background: rgba(255, 255, 255, 0.7);
+      transition: var(--transition);
+      box-shadow: 
+        0 2px 10px rgba(0, 0, 0, 0.05),
+        0 0 0 1px rgba(255, 255, 255, 0.2);
+    }
+    
+    .form-control:focus {
+      outline: none;
+      background: rgba(255, 255, 255, 0.85);
+      box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.1),
+        0 0 0 3px rgba(13, 110, 253, 0.25);
+      transform: translateY(-2px);
+    }
+    
+    .form-control::placeholder {
+      color: rgba(0, 0, 0, 0.4);
+    }
+    
+    .btn {
+      width: 100%;
+      border: none;
+      border-radius: var(--radius);
+      background: linear-gradient(45deg, var(--primary-hover) 0%, var(--primary) 100%);
+      color: #fff;
+      padding: 1rem 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 
+        0 4px 15px rgba(13, 110, 253, 0.3),
+        0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn:hover {
+      background: linear-gradient(45deg, #0050d5 0%, #0d7bfd 100%);
+      transform: translateY(-3px);
+      box-shadow: 
+        0 6px 20px rgba(13, 110, 253, 0.4),
+        0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.2) 50%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      transition: var(--transition);
+    }
+    
+    .btn:hover::before {
+      animation: btn-shine 1.2s;
+    }
+    
+    @keyframes btn-shine {
+      100% { left: 200%; }
+    }
+    
+    .alert {
+      background: rgba(255, 76, 76, 0.1);
+      border-left: 4px solid #ff4c4c;
+      color: #fff;
+      font-size: 0.95rem;
+      text-align: center;
+      border-radius: var(--radius);
+      padding: 0.8rem 1rem;
+      margin-bottom: 1.5rem;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 12px rgba(255, 76, 76, 0.15);
+    }
+    
+    .link {
+      margin-top: 1.5rem;
+      font-size: 0.95rem;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .link a {
+      color: #ffe97f;
+      text-decoration: none;
+      font-weight: 500;
+      transition: var(--transition);
+      padding-bottom: 2px;
+      border-bottom: 1px dotted rgba(255, 233, 127, 0.4);
+    }
+    
+    .link a:hover {
+      color: #fff2b3;
+      border-bottom: 1px dotted rgba(255, 233, 127, 0.8);
+    }
+
+    /* 适配移动设备 */
+    @media (max-width: 480px) {
+      .card {
+        padding: 2rem 1.8rem;
+      }
+      
+      .logo {
+        width: 70px;
+        height: 70px;
+      }
+      
+      h2 {
+        font-size: 1.6rem;
+        margin-bottom: 1.5rem;
+      }
+      
+      .form-control {
+        padding: 0.9rem 1rem;
+      }
+      
+      .btn {
+        padding: 0.9rem 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- 动画背景 -->
+  <div class="ocean-animation">
+    <div class="bubbles">
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+    </div>
+    <div class="wave"></div>
+    <div class="wave wave-2"></div>
+    <div class="wave wave-3"></div>
+  </div>
+
+  <div class="card-container">
+    <div class="card">
+      <div class="logo-container">
+        <div class="logo">海牧</div>
+      </div>
+      <h2>欢迎登录</h2>
+
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="alert">{{ messages[0] }}</div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" novalidate>
+        <div class="form-group">
+          <input type="text" name="username" class="form-control" placeholder="用户名" required>
+        </div>
+        <div class="form-group">
+          <input type="password" name="password" class="form-control" placeholder="密码" required>
+        </div>
+        <button type="submit" class="btn">登 录</button>
+      </form>
+
+      <p class="link">没有账号？<a href="{{ url_for('register') }}">立即注册</a></p>
+    </div>
+  </div>
+</body>
+</html>
